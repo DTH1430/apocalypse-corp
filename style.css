@@ -9,12 +9,46 @@ body {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     color: #eee;
     min-height: 100vh;
-    padding: 20px;
+    padding: 0;
+    margin: 0;
+}
+
+/* Stock Ticker */
+.stock-ticker {
+    background: #000;
+    color: #0f0;
+    padding: 8px 0;
+    overflow: hidden;
+    border-bottom: 2px solid #4a4a6a;
+    font-size: 0.9em;
+}
+
+.ticker-content {
+    display: inline-block;
+    white-space: nowrap;
+    animation: tickerScroll 30s linear infinite;
+    padding-left: 100%;
+}
+
+@keyframes tickerScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
+.ticker-up {
+    color: #4caf50;
+    font-weight: bold;
+}
+
+.ticker-down {
+    color: #f44336;
+    font-weight: bold;
 }
 
 .container {
     max-width: 1600px;
     margin: 0 auto;
+    padding: 20px;
 }
 
 header {
@@ -25,6 +59,17 @@ header {
     box-shadow: 0 5px 15px rgba(201, 75, 75, 0.4);
     margin-bottom: 20px;
     border: 3px solid #ff6b6b;
+}
+
+.memo-banner {
+    margin-top: 10px;
+    padding: 8px 15px;
+    background: rgba(255, 215, 0, 0.15);
+    border: 1px dashed #ffd700;
+    border-radius: 5px;
+    font-size: 0.85em;
+    font-style: italic;
+    color: #ffd700;
 }
 
 header h1 {
@@ -60,6 +105,7 @@ header h1 {
     border: 2px solid #4a4a6a;
     border-radius: 10px;
     padding: 20px;
+    position: relative;
 }
 
 .clock-display {
@@ -90,6 +136,16 @@ header h1 {
     width: 0%;
     transition: width 0.3s;
     box-shadow: 0 0 10px rgba(255, 68, 68, 0.7);
+}
+
+.clock-fill.pulse {
+    animation: clockPulse 0.3s ease-out;
+}
+
+@keyframes clockPulse {
+    0% { box-shadow: 0 0 10px rgba(255, 68, 68, 0.7); }
+    50% { box-shadow: 0 0 30px rgba(255, 68, 68, 1), 0 0 50px rgba(255, 68, 68, 0.5); }
+    100% { box-shadow: 0 0 10px rgba(255, 68, 68, 0.7); }
 }
 
 .doom-button {
@@ -130,6 +186,49 @@ header h1 {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 5px;
     border-left: 3px solid #4a4a6a;
+    position: relative;
+    cursor: help;
+    transition: all 0.2s;
+}
+
+.resource-item:hover {
+    background: rgba(0, 0, 0, 0.5);
+    border-left-color: #4fc3f7;
+}
+
+.resource-item .tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.95);
+    color: #fff;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 0.9em;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    margin-bottom: 5px;
+    border: 2px solid #4fc3f7;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.resource-item:hover .tooltip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-5px);
+}
+
+.resource-item .tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #4fc3f7;
 }
 
 .prestige-resource {
@@ -491,6 +590,204 @@ header h1 {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* Floating Chaos Point Animation */
+.floating-chaos {
+    position: absolute;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #4fc3f7;
+    pointer-events: none;
+    text-shadow: 0 0 10px rgba(79, 195, 247, 0.8), 2px 2px 4px rgba(0, 0, 0, 0.7);
+    animation: floatUp 1s ease-out forwards;
+    z-index: 1000;
+}
+
+@keyframes floatUp {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-100px) scale(1.3);
+    }
+}
+
+/* Apocalypse Progress Bar */
+.apocalypse-progress {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid #4a4a6a;
+}
+
+.apocalypse-progress h4 {
+    color: #ff6b6b;
+    margin-bottom: 10px;
+    font-size: 1em;
+}
+
+.progress-bar-container {
+    position: relative;
+    width: 100%;
+    height: 25px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid #666;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ffd700 0%, #ff8c00 100%);
+    width: 0%;
+    transition: width 0.3s;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.7);
+}
+
+.progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+    font-size: 0.9em;
+}
+
+.progress-hint {
+    margin-top: 8px;
+    font-size: 0.85em;
+    opacity: 0.7;
+    text-align: center;
+}
+
+/* Apocalypse Overlay Animation */
+.apocalypse-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.apocalypse-overlay.active {
+    display: flex;
+    animation: fadeIn 0.5s;
+}
+
+.apocalypse-animation {
+    position: relative;
+    text-align: center;
+    z-index: 10001;
+}
+
+.flames {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 50% 100%, #ff4444 0%, #ff8800 20%, transparent 50%);
+    animation: flamesFlicker 2s infinite;
+    opacity: 0.6;
+}
+
+@keyframes flamesFlicker {
+    0%, 100% { transform: scaleY(1) scaleX(1); opacity: 0.6; }
+    50% { transform: scaleY(1.2) scaleX(0.95); opacity: 0.8; }
+}
+
+.apocalypse-content {
+    position: relative;
+    z-index: 10002;
+    padding: 40px;
+}
+
+.apocalypse-title {
+    font-size: 4em;
+    color: #ff4444;
+    text-shadow: 0 0 30px rgba(255, 68, 68, 1), 0 0 60px rgba(255, 136, 0, 0.8);
+    margin-bottom: 30px;
+    animation: titlePulse 1s infinite;
+}
+
+@keyframes titlePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.apocalypse-stats {
+    background: rgba(0, 0, 0, 0.8);
+    border: 3px solid #ff6b6b;
+    border-radius: 15px;
+    padding: 30px;
+    margin: 30px auto;
+    max-width: 600px;
+    font-size: 1.2em;
+}
+
+.apocalypse-stats h2 {
+    color: #ffd700;
+    margin-bottom: 20px;
+    font-size: 1.5em;
+}
+
+.stat-line {
+    margin: 15px 0;
+    padding: 10px;
+    background: rgba(255, 107, 107, 0.1);
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.stat-label {
+    color: #aaa;
+}
+
+.stat-value {
+    color: #4fc3f7;
+    font-weight: bold;
+}
+
+.stat-value.highlight {
+    color: #ffd700;
+    font-size: 1.3em;
+}
+
+.apocalypse-footer {
+    margin-top: 30px;
+    color: #888;
+    font-style: italic;
+}
+
+/* Locked Department Style */
+.department-item.locked {
+    opacity: 0.5;
+    background: rgba(0, 0, 0, 0.6);
+    border-color: #333;
+}
+
+.department-item.locked .item-name {
+    color: #666;
+}
+
+.department-item.locked .item-desc {
+    color: #555;
+}
+
+.department-item.locked .buy-button {
+    background: rgba(50, 50, 50, 0.5);
+    border-color: #333;
+    cursor: not-allowed;
+}
+
 /* Footer */
 footer {
     display: flex;
@@ -556,5 +853,85 @@ footer {
 
     header h1 {
         font-size: 2em;
+    }
+
+    .apocalypse-title {
+        font-size: 2.5em;
+    }
+
+    /* Collapsible panels */
+    .left-panel, .center-panel, .right-panel {
+        margin-bottom: 15px;
+    }
+
+    .doomsday-clock-section h2,
+    .resources-section h3,
+    .scenario-section h3,
+    .stats-section h3,
+    .event-log-section h3 {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .doomsday-clock-section h2::after,
+    .resources-section h3::after,
+    .scenario-section h3::after,
+    .stats-section h3::after,
+    .event-log-section h3::after {
+        content: ' ▼';
+        font-size: 0.7em;
+        color: #888;
+    }
+
+    .doomsday-clock-section.collapsed h2::after,
+    .resources-section.collapsed h3::after,
+    .scenario-section.collapsed h3::after,
+    .stats-section.collapsed h3::after,
+    .event-log-section.collapsed h3::after {
+        content: ' ▶';
+    }
+
+    .doomsday-clock-section.collapsed > *:not(h2),
+    .resources-section.collapsed > *:not(h3),
+    .scenario-section.collapsed > *:not(h3),
+    .stats-section.collapsed > *:not(h3),
+    .event-log-section.collapsed > *:not(h3) {
+        display: none;
+    }
+
+    .ticker-content {
+        font-size: 0.8em;
+    }
+
+    .memo-banner {
+        font-size: 0.75em;
+    }
+}
+
+@media (max-width: 600px) {
+    .container {
+        padding: 10px;
+    }
+
+    header h1 {
+        font-size: 1.5em;
+    }
+
+    .apocalypse-title {
+        font-size: 1.8em;
+    }
+
+    .apocalypse-stats {
+        font-size: 1em;
+        padding: 20px;
+    }
+
+    footer {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .settings-button {
+        width: 100%;
     }
 }

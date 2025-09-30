@@ -8,9 +8,20 @@
 </head>
 <body>
     <div class="container">
+        <div class="stock-ticker" id="stockTicker">
+            <div class="ticker-content" id="tickerContent">
+                📊 DOOM INDEX: <span class="ticker-up">+∞%</span> |
+                🌍 HUMANITY FUTURES: <span class="ticker-down">-99.9%</span> |
+                ☄️ ASTEROID DELIVERY: ON SCHEDULE |
+                🧟 ZOMBIE BONDS: MATURE |
+                ⚠️ COMPLIANCE: WHO CARES?
+            </div>
+        </div>
+
         <header>
             <h1>🏢 APOCALYPSE CORP™</h1>
             <p class="tagline">Monetizing the End Times Since 2025</p>
+            <p class="memo-banner">📋 HR MEMO: "Employees are reminded that causing premature apocalypses before EOQ will affect your bonus."</p>
         </header>
 
         <div class="main-content">
@@ -28,23 +39,36 @@
                         ADVANCE DOOMSDAY
                         <span class="doom-value">+<span id="doomPerClick">1</span> Chaos Point per click</span>
                     </button>
+
+                    <div class="apocalypse-progress">
+                        <h4>📈 Apocalypse Readiness</h4>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" id="apocalypseProgress"></div>
+                            <span class="progress-text" id="apocalypseProgressText">0%</span>
+                        </div>
+                        <p class="progress-hint">Reach midnight to unlock apocalypse</p>
+                    </div>
                 </div>
 
                 <div class="resources-section">
                     <h3>📊 RESOURCES</h3>
                     <div class="resource-item">
+                        <span class="tooltip">Main currency - spend on departments and upgrades</span>
                         <span class="resource-label">Chaos Points:</span>
                         <span class="resource-value" id="chaosPoints">0</span>
                     </div>
                     <div class="resource-item">
+                        <span class="tooltip">Passive chaos generation from all departments</span>
                         <span class="resource-label">Chaos/sec:</span>
                         <span class="resource-value" id="chaosPerSec">0</span>
                     </div>
                     <div class="resource-item">
+                        <span class="tooltip">Accumulated power - generates bonus chaos over time</span>
                         <span class="resource-label">Doom Energy:</span>
                         <span class="resource-value" id="doomEnergy">0</span>
                     </div>
                     <div class="resource-item prestige-resource">
+                        <span class="tooltip">Premium currency - earned from apocalypses, unlocks mutations</span>
                         <span class="resource-label">💀 Apocalypse Tokens:</span>
                         <span class="resource-value" id="apocalypseTokens">0</span>
                     </div>
@@ -137,6 +161,20 @@
             <button class="settings-button" id="loadButton">📂 Load Game</button>
             <button class="settings-button danger" id="resetButton">⚠️ Hard Reset</button>
         </footer>
+    </div>
+
+    <!-- Apocalypse Animation Overlay -->
+    <div class="apocalypse-overlay" id="apocalypseOverlay">
+        <div class="apocalypse-animation" id="apocalypseAnimation">
+            <div class="flames"></div>
+            <div class="apocalypse-content">
+                <h1 class="apocalypse-title">🔥 APOCALYPSE TRIGGERED 🔥</h1>
+                <div class="apocalypse-stats" id="apocalypseStats"></div>
+                <div class="apocalypse-footer">
+                    <p>Preparing for next fiscal quarter...</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="game.js"></script>

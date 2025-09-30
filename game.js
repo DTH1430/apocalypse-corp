@@ -29,7 +29,8 @@ const DEPARTMENTS = {
         baseCost: 10,
         costMultiplier: 1.15,
         baseProduction: 0.1,
-        icon: '📋'
+        icon: '📋',
+        unlockRequirement: () => true
     },
     meteor: {
         id: 'meteor',
@@ -38,7 +39,8 @@ const DEPARTMENTS = {
         baseCost: 100,
         costMultiplier: 1.18,
         baseProduction: 1,
-        icon: '☄️'
+        icon: '☄️',
+        unlockRequirement: () => gameState.departments.intern.count >= 1
     },
     biohazard: {
         id: 'biohazard',
@@ -47,7 +49,8 @@ const DEPARTMENTS = {
         baseCost: 1000,
         costMultiplier: 1.20,
         baseProduction: 8,
-        icon: '🧪'
+        icon: '🧪',
+        unlockRequirement: () => gameState.departments.meteor.count >= 1
     },
     nuclear: {
         id: 'nuclear',
@@ -56,7 +59,8 @@ const DEPARTMENTS = {
         baseCost: 10000,
         costMultiplier: 1.22,
         baseProduction: 47,
-        icon: '☢️'
+        icon: '☢️',
+        unlockRequirement: () => gameState.departments.biohazard.count >= 1
     },
     conspiracy: {
         id: 'conspiracy',
@@ -65,7 +69,8 @@ const DEPARTMENTS = {
         baseCost: 100000,
         costMultiplier: 1.25,
         baseProduction: 260,
-        icon: '👁️'
+        icon: '👁️',
+        unlockRequirement: () => gameState.departments.nuclear.count >= 1
     },
     ai: {
         id: 'ai',
@@ -74,7 +79,8 @@ const DEPARTMENTS = {
         baseCost: 1000000,
         costMultiplier: 1.28,
         baseProduction: 1400,
-        icon: '🤖'
+        icon: '🤖',
+        unlockRequirement: () => gameState.departments.conspiracy.count >= 1
     },
     cosmic: {
         id: 'cosmic',
@@ -83,7 +89,8 @@ const DEPARTMENTS = {
         baseCost: 10000000,
         costMultiplier: 1.30,
         baseProduction: 7800,
-        icon: '🌌'
+        icon: '🌌',
+        unlockRequirement: () => gameState.departments.ai.count >= 1
     },
     timeparadox: {
         id: 'timeparadox',
@@ -92,7 +99,8 @@ const DEPARTMENTS = {
         baseCost: 100000000,
         costMultiplier: 1.32,
         baseProduction: 44000,
-        icon: '⏳'
+        icon: '⏳',
+        unlockRequirement: () => gameState.departments.cosmic.count >= 1
     }
 };
 
@@ -514,6 +522,9 @@ function triggerApocalypse() {
         gameState.bestRunTime = runTime;
     }
 
+    // Show apocalypse animation
+    showApocalypseAnimation(reward, runTime);
+
     // Award tokens
     gameState.apocalypseTokens += reward;
     gameState.totalApocalypses++;
@@ -578,7 +589,7 @@ function triggerApocalypse() {
 }
 
 // Click handler
-function handleDoomClick() {
+function handleDoomClick(event) {
     let clickPower = gameState.doomPerClick;
 
     // Apply scenario effects
@@ -606,6 +617,14 @@ function handleDoomClick() {
         gameState.doomClockProgress = clockThreshold;
     }
 
+    // Create floating chaos point animation
+    createFloatingText(`+${formatNumber(clickPower)}`, event);
+
+    // Add pulse effect to clock
+    const clockFill = document.getElementById('clockFill');
+    clockFill.classList.add('pulse');
+    setTimeout(() => clockFill.classList.remove('pulse'), 300);
+
     // Tutorial hint after first few clicks
     if (gameState.chaosPoints >= 10 && gameState.chaosPoints <= 12 &&
         Object.values(gameState.departments).every(d => d.count === 0)) {
@@ -613,6 +632,81 @@ function handleDoomClick() {
     }
 
     updateDisplay();
+}
+
+// Create floating text animation
+function createFloatingText(text, event) {
+    const button = event.target.closest('.doom-button');
+    if (!button) return;
+
+    const floating = document.createElement('div');
+    floating.className = 'floating-chaos';
+    floating.textContent = text;
+
+    // Get button position relative to the clock section
+    const clockSection = document.querySelector('.doomsday-clock-section');
+    const rect = button.getBoundingClientRect();
+    const sectionRect = clockSection.getBoundingClientRect();
+
+    // Position at click location (or center of button)
+    const x = event.clientX ? event.clientX - sectionRect.left : rect.width / 2;
+    const y = event.clientY ? event.clientY - sectionRect.top : rect.height / 2;
+
+    floating.style.left = x + 'px';
+    floating.style.top = y + 'px';
+
+    clockSection.appendChild(floating);
+
+    // Remove after animation
+    setTimeout(() => {
+        if (floating.parentNode) {
+            floating.parentNode.removeChild(floating);
+        }
+    }, 1000);
+}
+
+// Show apocalypse animation overlay
+function showApocalypseAnimation(tokensGained, runTime) {
+    const overlay = document.getElementById('apocalypseOverlay');
+    const statsDiv = document.getElementById('apocalypseStats');
+
+    const departmentCount = Object.values(gameState.departments).reduce((sum, d) => sum + d.count, 0);
+    const upgradeCount = Object.keys(gameState.upgrades).length;
+
+    statsDiv.innerHTML = `
+        <h2>📊 Quarterly Chaos Report</h2>
+        <div class="stat-line">
+            <span class="stat-label">Run Duration:</span>
+            <span class="stat-value">${formatTime(runTime)}</span>
+        </div>
+        <div class="stat-line">
+            <span class="stat-label">Chaos Generated:</span>
+            <span class="stat-value">${formatNumber(gameState.chaosPoints)}</span>
+        </div>
+        <div class="stat-line">
+            <span class="stat-label">Departments Hired:</span>
+            <span class="stat-value">${departmentCount}</span>
+        </div>
+        <div class="stat-line">
+            <span class="stat-label">Upgrades Purchased:</span>
+            <span class="stat-value">${upgradeCount}</span>
+        </div>
+        <div class="stat-line">
+            <span class="stat-label">Total Apocalypses:</span>
+            <span class="stat-value">${gameState.totalApocalypses + 1}</span>
+        </div>
+        <div class="stat-line" style="margin-top: 20px; border: 2px solid #ffd700;">
+            <span class="stat-label">💀 Apocalypse Tokens Earned:</span>
+            <span class="stat-value highlight">+${tokensGained}</span>
+        </div>
+    `;
+
+    overlay.classList.add('active');
+
+    // Auto-close after 4 seconds
+    setTimeout(() => {
+        overlay.classList.remove('active');
+    }, 4000);
 }
 
 // Game loop
@@ -664,6 +758,10 @@ function updateDisplay() {
     const minutes = Math.floor((clockPercent / 100) * 60);
     document.getElementById('clockTime').textContent =
         `${hours}:${minutes.toString().padStart(2, '0')} PM`;
+
+    // Apocalypse progress bar
+    document.getElementById('apocalypseProgress').style.width = Math.min(100, clockPercent) + '%';
+    document.getElementById('apocalypseProgressText').textContent = Math.floor(clockPercent) + '%';
 
     // Apocalypse button
     const apocalypseReward = calculateApocalypseReward();
@@ -798,24 +896,44 @@ function renderDepartments() {
         const cost = getDepartmentCost(dept.id);
         const production = getDepartmentProduction(dept.id);
         const canAfford = gameState.chaosPoints >= cost;
+        const isUnlocked = dept.unlockRequirement();
 
         const div = document.createElement('div');
-        div.className = 'department-item';
-        div.innerHTML = `
-            <div class="item-header">
-                <span class="item-name">${dept.icon} ${dept.name}</span>
-                <span class="item-count">Owned: ${count}</span>
-            </div>
-            <div class="item-desc">${dept.desc}</div>
-            <div class="item-footer">
-                <span class="item-production">+${formatNumber(dept.baseProduction)}/sec each</span>
-                <button class="buy-button" ${!canAfford ? 'disabled' : ''}>
-                    Buy - ${formatNumber(cost)} chaos
-                </button>
-            </div>
-        `;
+        div.className = isUnlocked ? 'department-item' : 'department-item locked';
 
-        div.querySelector('.buy-button').onclick = () => buyDepartment(dept.id);
+        if (isUnlocked) {
+            div.innerHTML = `
+                <div class="item-header">
+                    <span class="item-name">${dept.icon} ${dept.name}</span>
+                    <span class="item-count">Owned: ${count}</span>
+                </div>
+                <div class="item-desc">${dept.desc}</div>
+                <div class="item-footer">
+                    <span class="item-production">+${formatNumber(dept.baseProduction)}/sec each</span>
+                    <button class="buy-button" ${!canAfford ? 'disabled' : ''}>
+                        Buy - ${formatNumber(cost)} chaos
+                    </button>
+                </div>
+            `;
+            div.querySelector('.buy-button').onclick = () => buyDepartment(dept.id);
+        } else {
+            div.innerHTML = `
+                <div class="item-header">
+                    <span class="item-name">❓ ???</span>
+                    <span class="item-count">LOCKED</span>
+                </div>
+                <div class="item-desc">Requires previous department to unlock</div>
+                <div class="item-footer">
+                    <span class="item-production">???</span>
+                    <button class="buy-button" disabled>
+                        LOCKED
+                    </button>
+                </div>
+            `;
+            // Add tooltip
+            div.title = `Unlock ${dept.name} by purchasing the previous department`;
+        }
+
         container.appendChild(div);
     });
 }
@@ -1023,9 +1141,37 @@ function initializeGame() {
         selectScenario();
     }
 
+    // Add mobile collapse functionality
+    if (window.innerWidth <= 1024) {
+        setupMobileCollapse();
+    }
+
     // Start game loop
     updateDisplay();
     setInterval(gameTick, 100);
+}
+
+// Setup collapsible panels for mobile
+function setupMobileCollapse() {
+    const sections = [
+        '.doomsday-clock-section',
+        '.resources-section',
+        '.scenario-section',
+        '.stats-section',
+        '.event-log-section'
+    ];
+
+    sections.forEach(selector => {
+        const section = document.querySelector(selector);
+        if (!section) return;
+
+        const header = section.querySelector('h2, h3');
+        if (!header) return;
+
+        header.addEventListener('click', () => {
+            section.classList.toggle('collapsed');
+        });
+    });
 }
 
 // Wait for DOM to be ready

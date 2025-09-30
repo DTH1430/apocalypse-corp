@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: Apocalypse Corp - End Times Management Simulator\n\nFeatures:\n- Core incremental game mechanics with clicking and automation\n- 8 unique departments (Intern to Temporal Paradox Bureau)\n- Upgrade system with click power and production multipliers\n- Apocalypse/prestige system with tokens and mutations\n- Stock market mini-game with price fluctuations\n- Random scenarios that modify gameplay\n- Auto-save/load functionality\n- Dark corporate theme with satirical UI\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git config:*)",
+      "Bash(gh repo create:*)"
     ],
     "deny": [],
     "ask": []
