@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apocalypse Corp - End Times Management Simulator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏢 APOCALYPSE CORP™</h1>
+            <p class="tagline">Monetizing the End Times Since 2025</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Left Panel: Doomsday Clock & Resources -->
+            <div class="left-panel">
+                <div class="doomsday-clock-section">
+                    <h2>⏰ DOOMSDAY CLOCK</h2>
+                    <div class="clock-display">
+                        <div class="clock-time" id="clockTime">11:00 PM</div>
+                        <div class="clock-progress">
+                            <div class="clock-fill" id="clockFill"></div>
+                        </div>
+                    </div>
+                    <button class="doom-button" id="doomButton">
+                        ADVANCE DOOMSDAY
+                        <span class="doom-value">+<span id="doomPerClick">1</span> Chaos Point per click</span>
+                    </button>
+                </div>
+
+                <div class="resources-section">
+                    <h3>📊 RESOURCES</h3>
+                    <div class="resource-item">
+                        <span class="resource-label">Chaos Points:</span>
+                        <span class="resource-value" id="chaosPoints">0</span>
+                    </div>
+                    <div class="resource-item">
+                        <span class="resource-label">Chaos/sec:</span>
+                        <span class="resource-value" id="chaosPerSec">0</span>
+                    </div>
+                    <div class="resource-item">
+                        <span class="resource-label">Doom Energy:</span>
+                        <span class="resource-value" id="doomEnergy">0</span>
+                    </div>
+                    <div class="resource-item prestige-resource">
+                        <span class="resource-label">💀 Apocalypse Tokens:</span>
+                        <span class="resource-value" id="apocalypseTokens">0</span>
+                    </div>
+                </div>
+
+                <div class="apocalypse-section" id="apocalypseSection">
+                    <h3>🌋 TRIGGER APOCALYPSE</h3>
+                    <p class="apocalypse-info">End the world and gain powerful bonuses!</p>
+                    <button class="apocalypse-button" id="apocalypseButton">
+                        🔥 TRIGGER APOCALYPSE 🔥
+                        <span class="apocalypse-reward">Gain: <span id="apocalypseReward">0</span> tokens</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Center Panel: Upgrades & Departments -->
+            <div class="center-panel">
+                <div class="tab-container">
+                    <button class="tab-button active" data-tab="departments">DEPARTMENTS</button>
+                    <button class="tab-button" data-tab="upgrades">UPGRADES</button>
+                    <button class="tab-button" data-tab="stocks">DOOM STOCKS</button>
+                    <button class="tab-button" data-tab="mutations">MUTATIONS</button>
+                </div>
+
+                <!-- Departments Tab -->
+                <div class="tab-content active" id="departments">
+                    <h2>🏭 DISASTER DEPARTMENTS</h2>
+                    <div class="departments-list" id="departmentsList"></div>
+                </div>
+
+                <!-- Upgrades Tab -->
+                <div class="tab-content" id="upgrades">
+                    <h2>⚡ EFFICIENCY UPGRADES</h2>
+                    <div class="upgrades-list" id="upgradesList"></div>
+                </div>
+
+                <!-- Stock Market Tab -->
+                <div class="tab-content" id="stocks">
+                    <h2>📈 DOOM STOCK MARKET</h2>
+                    <p class="stocks-info">Invest in corporations profiting from chaos!</p>
+                    <div class="stocks-list" id="stocksList"></div>
+                </div>
+
+                <!-- Mutations Tab -->
+                <div class="tab-content" id="mutations">
+                    <h2>☢️ APOCALYPSE MUTATIONS</h2>
+                    <p class="mutations-info">Permanent bonuses from previous world-endings</p>
+                    <div class="mutations-list" id="mutationsList"></div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Event Log & Stats -->
+            <div class="right-panel">
+                <div class="scenario-section">
+                    <h3>🎲 CURRENT SCENARIO</h3>
+                    <div class="scenario-card" id="scenarioCard">
+                        <div class="scenario-name" id="scenarioName">Standard Apocalypse</div>
+                        <div class="scenario-desc" id="scenarioDesc">No special modifiers this run</div>
+                        <div class="scenario-effects" id="scenarioEffects"></div>
+                    </div>
+                </div>
+
+                <div class="stats-section">
+                    <h3>📋 STATISTICS</h3>
+                    <div class="stat-item">
+                        <span>Total Apocalypses:</span>
+                        <span id="totalApocalypses">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>This Run:</span>
+                        <span id="runTime">0s</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Best Run:</span>
+                        <span id="bestRun">N/A</span>
+                    </div>
+                </div>
+
+                <div class="event-log-section">
+                    <h3>📰 EVENT LOG</h3>
+                    <div class="event-log" id="eventLog">
+                        <div class="event-item">Welcome to Apocalypse Corp! Click to begin.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <button class="settings-button" id="saveButton">💾 Save Game</button>
+            <button class="settings-button" id="loadButton">📂 Load Game</button>
+            <button class="settings-button danger" id="resetButton">⚠️ Hard Reset</button>
+        </footer>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
