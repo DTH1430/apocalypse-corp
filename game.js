@@ -42,6 +42,33 @@ const gameState = {
     tutorialCompleted: false,
     tutorialHintShown: false,
 
+    // Community Features - Statistics Tracking
+    lifetimeStats: {
+        totalClicksAllTime: 0,
+        totalChaosAllTime: 0,
+        totalApocalypsesAllTime: 0,
+        fastestApocalypseTime: null,
+        highestChaosPerSec: 0,
+        longestCombo: 0,
+        totalPlayTime: 0
+    },
+    sessionStats: {
+        sessionStartTime: Date.now(),
+        sessionClicks: 0,
+        sessionChaos: 0,
+        sessionApocalypses: 0
+    },
+    ghostRun: {
+        bestRunData: null, // Array of {time, chaos} snapshots
+        currentRunData: [],
+        lastSnapshotTime: 0
+    },
+    weeklyChallenge: {
+        currentWeek: null,
+        completed: false,
+        progress: 0
+    },
+
     // Critical hit system
     critChance: 0,
     critMultiplier: 0,
@@ -59,6 +86,12 @@ const gameState = {
     // Bulk buy mode
     buyMode: 1, // 1, 10, 100, or 'max'
 
+    // Department specializations (persists through apocalypses)
+    departmentSpecializations: {},
+
+    // Active synergy bonuses
+    activeSynergies: [],
+
     // Upgrade multipliers (prevents global state mutation)
     upgradeMultipliers: {
         intern: 1,
@@ -69,7 +102,47 @@ const gameState = {
         reality: 1,
         dimension: 1,
         paradox: 1
-    }
+    },
+
+    // Challenge system
+    activeChallenge: null,
+    challengeStartTime: 0,
+    challengeProgress: 0,
+    challengesCompleted: 0,
+    nextChallengeTime: 0,
+    challengeNotificationShown: false,
+
+    // Apocalypse system
+    apocalypseHistory: [], // Track which apocalypse types have been used
+    lastApocalypseType: null,
+    apocalypseTypesCompleted: {}, // Track first-time completions
+    persistentUnlocks: {}, // Track permanent unlocks (aiOverlord, alienTech, etc.)
+    activeApocalypseEffects: {}, // Current run effects
+    upgradesDisabledUntil: 0, // For solar flare effect
+    zombieProductionEndTime: 0, // For zombie plague effect
+
+    // Active gameplay mechanics
+    lastActivityTime: Date.now(),
+    lastEventTime: 0,
+    nextEventTime: 0,
+    activeEvent: null,
+    eventHistory: [],
+
+    // Department Focus
+    focusedDepartment: null,
+    lastFocusChange: 0,
+    focusCooldown: 60000, // 60 seconds
+
+    // Doom Projects
+    activeProject: null,
+    completedProjects: [],
+    projectProgress: 0,
+
+    // Crisis Management
+    activeCrisis: null,
+    crisisDecisionsMade: 0,
+    crisisStartTime: 0,
+    lastCrisisTime: 0
 };
 
 // Game Data Definitions
@@ -287,6 +360,512 @@ const UPGRADES = {
     }
 };
 
+const CHALLENGES = [
+    // Speed challenges
+    {
+        id: 'speed_chaos_100',
+        type: 'speed',
+        name: '⚡ Speed Run: 100 Chaos',
+        desc: 'Generate 100 chaos in 60 seconds',
+        tier: 1,
+        goal: 100,
+        timeLimit: 60,
+        reward: { chaos: 200, multiplier: null },
+        requirement: () => gameState.chaosPerSecond >= 5
+    },
+    {
+        id: 'speed_chaos_500',
+        type: 'speed',
+        name: '⚡ Speed Run: 500 Chaos',
+        desc: 'Generate 500 chaos in 90 seconds',
+        tier: 2,
+        goal: 500,
+        timeLimit: 90,
+        reward: { chaos: 1000, multiplier: { value: 1.5, duration: 120 } },
+        requirement: () => gameState.chaosPerSecond >= 20
+    },
+    {
+        id: 'speed_chaos_2000',
+        type: 'speed',
+        name: '⚡ Speed Run: 2000 Chaos',
+        desc: 'Generate 2000 chaos in 120 seconds',
+        tier: 3,
+        goal: 2000,
+        timeLimit: 120,
+        reward: { chaos: 5000, multiplier: { value: 2, duration: 180 } },
+        requirement: () => gameState.chaosPerSecond >= 50
+    },
+    // Efficiency challenges
+    {
+        id: 'efficiency_no_interns',
+        type: 'efficiency',
+        name: '🎯 No Entry Level',
+        desc: 'Reach 50 chaos/sec without buying any Interns',
+        tier: 1,
+        goal: 50,
+        restrictedDept: 'intern',
+        reward: { chaos: 1000, multiplier: null },
+        requirement: () => gameState.totalApocalypses >= 1
+    },
+    {
+        id: 'efficiency_no_meteor',
+        type: 'efficiency',
+        name: '🎯 Grounded Strategy',
+        desc: 'Reach 200 chaos/sec without buying Meteor Sales',
+        tier: 2,
+        goal: 200,
+        restrictedDept: 'meteor',
+        reward: { chaos: 5000, multiplier: { value: 1.5, duration: 150 } },
+        requirement: () => gameState.totalApocalypses >= 2
+    },
+    // Clicking challenges
+    {
+        id: 'clicking_50',
+        type: 'clicking',
+        name: '👆 Speed Clicker',
+        desc: 'Click 50 times in 30 seconds',
+        tier: 1,
+        goal: 50,
+        timeLimit: 30,
+        reward: { chaos: 300, multiplier: null },
+        requirement: () => true
+    },
+    {
+        id: 'clicking_100',
+        type: 'clicking',
+        name: '👆 Click Master',
+        desc: 'Click 100 times in 45 seconds',
+        tier: 2,
+        goal: 100,
+        timeLimit: 45,
+        reward: { chaos: 800, multiplier: { value: 1.5, duration: 90 } },
+        requirement: () => gameState.totalClicks >= 500
+    },
+    {
+        id: 'clicking_200',
+        type: 'clicking',
+        name: '👆 Click Legend',
+        desc: 'Click 200 times in 60 seconds',
+        tier: 3,
+        goal: 200,
+        timeLimit: 60,
+        reward: { chaos: 2000, multiplier: { value: 2, duration: 120 } },
+        requirement: () => gameState.totalClicks >= 2000
+    },
+    // Combo challenges
+    {
+        id: 'combo_maintain_20',
+        type: 'combo',
+        name: '🔥 Combo Novice',
+        desc: 'Maintain a 20x combo for 15 seconds',
+        tier: 1,
+        goal: 20,
+        duration: 15,
+        reward: { chaos: 500, multiplier: null },
+        requirement: () => gameState.upgrades.autoClicker1
+    },
+    {
+        id: 'combo_maintain_35',
+        type: 'combo',
+        name: '🔥 Combo Expert',
+        desc: 'Maintain a 35x combo for 20 seconds',
+        tier: 2,
+        goal: 35,
+        duration: 20,
+        reward: { chaos: 1500, multiplier: { value: 1.5, duration: 120 } },
+        requirement: () => gameState.upgrades.autoClicker2
+    },
+    {
+        id: 'combo_maintain_50',
+        type: 'combo',
+        name: '🔥 Combo Master',
+        desc: 'Maintain a 50x combo for 30 seconds',
+        tier: 3,
+        goal: 50,
+        duration: 30,
+        reward: { chaos: 3000, multiplier: { value: 2, duration: 180 } },
+        requirement: () => gameState.upgrades.autoClicker3
+    }
+];
+
+const APOCALYPSE_TYPES = {
+    meteor: {
+        id: 'meteor',
+        name: '☄️ Meteor Strike',
+        desc: 'A massive asteroid impacts Earth, reshaping civilization',
+        icon: '☄️',
+        unlockRequirement: () => true, // Always available
+        tokenMultiplier: 1.0,
+        effects: {
+            departmentCostMult: 1.5, // +50% costs
+            productionMult: 3.0, // +200% production (3x total)
+            duration: null // Permanent for run
+        },
+        persistentUnlock: null,
+        firstTimeBonus: {
+            tokens: 5,
+            message: 'Unlocked: Meteor Strike apocalypse type!'
+        },
+        flavorText: '🌍 The impact creates a new world order. Rebuilding is expensive but exponentially effective.'
+    },
+    ai: {
+        id: 'ai',
+        name: '🤖 AI Uprising',
+        desc: 'Artificial intelligence achieves sentience and optimizes chaos generation',
+        icon: '🤖',
+        unlockRequirement: () => gameState.totalApocalypses >= 1,
+        tokenMultiplier: 1.2,
+        effects: {
+            aiOverlordActive: true // Unlocks AI automation mechanic
+        },
+        persistentUnlock: 'aiOverlord',
+        firstTimeBonus: {
+            tokens: 10,
+            message: 'Unlocked: AI Overlord - Automated optimization system!'
+        },
+        flavorText: '🧠 The machines now serve you, automating department purchases and upgrades.'
+    },
+    timeloop: {
+        id: 'timeloop',
+        name: '⏰ Time Loop',
+        desc: 'Reality loops back on itself, preserving echoes of the past',
+        icon: '⏰',
+        unlockRequirement: () => gameState.totalApocalypses >= 2,
+        tokenMultiplier: 0.8,
+        effects: {
+            keepDepartments: 0.25 // Keep 25% of departments
+        },
+        persistentUnlock: null,
+        firstTimeBonus: {
+            tokens: 8,
+            message: 'Unlocked: Time Loop - Keep departments through resets!'
+        },
+        flavorText: '⏳ Time fractures, leaving fragments of your empire intact.'
+    },
+    zombie: {
+        id: 'zombie',
+        name: '🧟 Zombie Plague',
+        desc: 'The undead rise, departments continue generating chaos post-apocalypse',
+        icon: '🧟',
+        unlockRequirement: () => gameState.totalApocalypses >= 3,
+        tokenMultiplier: 1.1,
+        effects: {
+            postApocalypseProduction: true,
+            duration: 600000 // 10 minutes in milliseconds
+        },
+        persistentUnlock: null,
+        firstTimeBonus: {
+            tokens: 12,
+            message: 'Unlocked: Zombie Plague - Departments generate chaos after apocalypse!'
+        },
+        flavorText: '💀 The dead don\'t stop working. Your departments shamble on for 10 minutes.'
+    },
+    solar: {
+        id: 'solar',
+        name: '☀️ Solar Flare',
+        desc: 'Massive solar radiation grants extra tokens but disrupts technology',
+        icon: '☀️',
+        unlockRequirement: () => gameState.totalApocalypses >= 4,
+        tokenMultiplier: 2.0,
+        effects: {
+            upgradesDisabled: true,
+            upgradesDisabledDuration: 300000 // 5 minutes
+        },
+        persistentUnlock: null,
+        firstTimeBonus: {
+            tokens: 15,
+            message: 'Unlocked: Solar Flare - Double tokens but technological setback!'
+        },
+        flavorText: '⚡ The radiation supercharges token generation but fries your upgrade systems.'
+    },
+    alien: {
+        id: 'alien',
+        name: '👽 Alien Invasion',
+        desc: 'Extraterrestrial contact unlocks advanced alien technology',
+        icon: '👽',
+        unlockRequirement: () => gameState.totalApocalypses >= 5,
+        tokenMultiplier: 1.3,
+        effects: {},
+        persistentUnlock: 'alienTech',
+        firstTimeBonus: {
+            tokens: 20,
+            message: 'Unlocked: Alien Technology Tree - New mutation path!'
+        },
+        flavorText: '🛸 They come in peace... to help you destroy worlds more efficiently.'
+    },
+    economic: {
+        id: 'economic',
+        name: '💸 Economic Collapse',
+        desc: 'Global markets crash, making everything permanently cheaper',
+        icon: '💸',
+        unlockRequirement: () => gameState.totalApocalypses >= 7,
+        tokenMultiplier: 1.0,
+        effects: {
+            permanentCostReduction: 0.5 // 50% cheaper
+        },
+        persistentUnlock: 'economicCollapse',
+        firstTimeBonus: {
+            tokens: 25,
+            message: 'Unlocked: Economic Collapse - All costs permanently 50% cheaper!'
+        },
+        flavorText: '📉 When money has no meaning, apocalypse becomes affordable.'
+    },
+    reality: {
+        id: 'reality',
+        name: '🌀 Reality Tear',
+        desc: 'The fabric of existence ruptures, enabling dimension-hopping',
+        icon: '🌀',
+        unlockRequirement: () => gameState.totalApocalypses >= 10,
+        tokenMultiplier: 1.5,
+        effects: {},
+        persistentUnlock: 'dimensionHopping',
+        firstTimeBonus: {
+            tokens: 50,
+            message: 'Unlocked: Dimension Hopping - Access parallel apocalypses!'
+        },
+        flavorText: '✨ Reality itself becomes your playground across infinite dimensions.'
+    }
+};
+
+const RANDOM_EVENTS = [
+    {
+        id: 'investor_offer',
+        name: '💰 Mysterious Investor',
+        desc: 'A shadowy figure offers funding for your apocalyptic ventures.',
+        choices: [
+            {
+                text: 'Accept the deal',
+                effect: () => {
+                    const bonus = Math.floor(gameState.chaosPoints * 0.5);
+                    gameState.chaosPoints += bonus;
+                    gameState.chaosPerSecond *= 0.8;
+                    return `Gained ${formatNumber(bonus)} chaos! Production -20% for this run.`;
+                }
+            },
+            {
+                text: 'Decline politely',
+                effect: () => {
+                    const bonus = gameState.doomPerClick * 2;
+                    gameState.doomPerClick += bonus;
+                    return `Your integrity attracts better opportunities. Click power +${formatNumber(bonus)}!`;
+                }
+            }
+        ],
+        requirement: () => gameState.chaosPoints >= 1000
+    },
+    {
+        id: 'sabotage_attempt',
+        name: '🕵️ Corporate Sabotage',
+        desc: 'A rival corporation attempts to sabotage your operations!',
+        choices: [
+            {
+                text: 'Pay them off (50% chaos)',
+                effect: () => {
+                    const cost = Math.floor(gameState.chaosPoints * 0.5);
+                    gameState.chaosPoints -= cost;
+                    return `Paid ${formatNumber(cost)} chaos. Crisis averted.`;
+                }
+            },
+            {
+                text: 'Fight back',
+                effect: () => {
+                    const deptKeys = Object.keys(gameState.departments);
+                    const randomDept = deptKeys[Math.floor(Math.random() * deptKeys.length)];
+                    const loss = Math.floor(gameState.departments[randomDept].count * 0.1);
+                    gameState.departments[randomDept].count -= loss;
+                    return `Lost ${loss} ${DEPARTMENTS[randomDept].name}. They'll pay for this...`;
+                }
+            },
+            {
+                text: 'Ignore it',
+                effect: () => {
+                    const penalty = Math.random() > 0.5;
+                    if (penalty) {
+                        gameState.chaosPerSecond *= 0.9;
+                        return 'Sabotage partially succeeded. Production -10%.';
+                    } else {
+                        return 'Their attempt failed! No damage taken.';
+                    }
+                }
+            }
+        ],
+        requirement: () => gameState.totalApocalypses >= 1
+    },
+    {
+        id: 'time_anomaly',
+        name: '⏰ Time Anomaly Detected',
+        desc: 'Reality flickers. You could exploit this temporal weakness...',
+        choices: [
+            {
+                text: 'Accelerate time',
+                effect: () => {
+                    const bonus = gameState.chaosPerSecond * 60;
+                    gameState.chaosPoints += bonus;
+                    return `Gained ${formatNumber(bonus)} chaos (1 minute worth)!`;
+                }
+            },
+            {
+                text: 'Reverse time',
+                effect: () => {
+                    const refund = Object.keys(gameState.upgrades).length * 100;
+                    gameState.chaosPoints += refund;
+                    return `Refunded ${formatNumber(refund)} chaos from the timeline!`;
+                }
+            }
+        ],
+        requirement: () => gameState.totalApocalypses >= 3
+    },
+    {
+        id: 'doomsday_cult',
+        name: '🙏 Doomsday Cult',
+        desc: 'Fanatics worship your apocalyptic vision. They offer assistance.',
+        choices: [
+            {
+                text: 'Accept their worship',
+                effect: () => {
+                    gameState.doomPerClick *= 1.5;
+                    return 'Cult members boost your clicking power by 50%!';
+                }
+            },
+            {
+                text: 'Use them as labor',
+                effect: () => {
+                    const randomDept = Object.keys(DEPARTMENTS)[Math.floor(Math.random() * Object.keys(DEPARTMENTS).length)];
+                    gameState.departments[randomDept].count += 5;
+                    return `Gained 5 ${DEPARTMENTS[randomDept].name} from devoted followers!`;
+                }
+            },
+            {
+                text: 'Send them away',
+                effect: () => {
+                    gameState.apocalypseTokens += 3;
+                    return 'Your rejection impresses dark forces. Gained 3 tokens!';
+                }
+            }
+        ],
+        requirement: () => gameState.totalApocalypses >= 2
+    },
+    {
+        id: 'alien_contact',
+        name: '👽 First Contact',
+        desc: 'Extraterrestrial beings have noticed your world-ending efforts.',
+        choices: [
+            {
+                text: 'Trade technology',
+                effect: () => {
+                    Object.keys(gameState.upgradeMultipliers).forEach(key => {
+                        gameState.upgradeMultipliers[key] *= 1.25;
+                    });
+                    return 'Alien tech boosts all production by 25%!';
+                }
+            },
+            {
+                text: 'Ask for guidance',
+                effect: () => {
+                    const bonus = Math.floor(gameState.chaosPoints * 0.3);
+                    gameState.chaosPoints += bonus;
+                    gameState.chaosPerSecond *= 1.1;
+                    return `Gained ${formatNumber(bonus)} chaos and +10% production!`;
+                }
+            }
+        ],
+        requirement: () => gameState.persistentUnlocks.alienTech === true
+    },
+    {
+        id: 'stock_market_crash',
+        name: '📉 Market Collapse',
+        desc: 'Financial systems are crumbling. Opportunity or disaster?',
+        choices: [
+            {
+                text: 'Buy the dip',
+                effect: () => {
+                    const cost = Math.floor(gameState.chaosPoints * 0.3);
+                    gameState.chaosPoints -= cost;
+                    gameState.chaosPerSecond *= 1.3;
+                    return `Invested ${formatNumber(cost)} chaos. Production +30%!`;
+                }
+            },
+            {
+                text: 'Short everything',
+                effect: () => {
+                    const gain = Math.floor(gameState.chaosPerSecond * 30);
+                    gameState.chaosPoints += gain;
+                    return `Profited ${formatNumber(gain)} chaos from the chaos!`;
+                }
+            },
+            {
+                text: 'Watch it burn',
+                effect: () => {
+                    gameState.doomEnergy += 1000;
+                    return 'The despair fuels you. Gained 1000 doom energy!';
+                }
+            }
+        ],
+        requirement: () => gameState.chaosPerSecond >= 100
+    }
+];
+
+const DOOM_PROJECTS = [
+    {
+        id: 'doomsday_device',
+        name: '🔧 Doomsday Device',
+        desc: 'Construct the ultimate weapon of mass destruction',
+        cost: 100000,
+        clicksRequired: 100,
+        idleTime: 600000, // 10 minutes
+        reward: {
+            type: 'multiplier',
+            value: 2,
+            target: 'all_production',
+            message: 'All production doubled permanently!'
+        },
+        requirement: () => gameState.totalApocalypses >= 5
+    },
+    {
+        id: 'reality_anchor',
+        name: '⚓ Reality Anchor',
+        desc: 'Stabilize reality to enhance dimensional manipulation',
+        cost: 500000,
+        clicksRequired: 200,
+        idleTime: 1200000, // 20 minutes
+        reward: {
+            type: 'unlock',
+            value: 'realityAnchor',
+            message: 'Unlocked: Keep 50% of chaos on apocalypse!'
+        },
+        requirement: () => gameState.persistentUnlocks.dimensionHopping === true
+    },
+    {
+        id: 'mega_meteor',
+        name: '☄️ Mega Meteor Summoner',
+        desc: 'Call down asteroids on demand',
+        cost: 250000,
+        clicksRequired: 150,
+        idleTime: 900000, // 15 minutes
+        reward: {
+            type: 'ability',
+            value: 'meteor_strike',
+            message: 'Unlocked: Meteor Strike ability (massive instant chaos)!'
+        },
+        requirement: () => gameState.apocalypseTypesCompleted.meteor === true
+    },
+    {
+        id: 'time_dilator',
+        name: '⏱️ Time Dilator',
+        desc: 'Slow time to maximize efficiency',
+        cost: 1000000,
+        clicksRequired: 300,
+        idleTime: 1800000, // 30 minutes
+        reward: {
+            type: 'multiplier',
+            value: 3,
+            target: 'click_power',
+            message: 'Click power tripled permanently!'
+        },
+        requirement: () => gameState.totalApocalypses >= 10
+    }
+];
+
 const MUTATIONS = {
     nuclearWinter: {
         id: 'nuclearWinter',
@@ -330,6 +909,59 @@ const MUTATIONS = {
         cost: 8,
         effect: 'click_boost',
         unlocked: false
+    }
+};
+
+// Department Specialization Paths
+const SPECIALIZATIONS = {
+    military: {
+        id: 'military',
+        name: '⚔️ Military Path',
+        color: '#ff4444',
+        bonuses: {
+            production: 1.5, // +50% production
+            clickPower: 1.2  // +20% click power when this dept is owned
+        }
+    },
+    economic: {
+        id: 'economic',
+        name: '💰 Economic Path',
+        color: '#44ff44',
+        bonuses: {
+            production: 1.3, // +30% production
+            costReduction: 0.85 // -15% department costs
+        }
+    },
+    scientific: {
+        id: 'scientific',
+        name: '🔬 Scientific Path',
+        color: '#4444ff',
+        bonuses: {
+            production: 1.4, // +40% production
+            upgradeDiscount: 0.9 // -10% upgrade costs
+        }
+    }
+};
+
+// Synergy effects when 3+ departments share same specialization
+const SYNERGIES = {
+    military: {
+        threshold: 3,
+        name: '⚔️ War Machine',
+        desc: 'All departments produce 25% more chaos',
+        bonus: { globalProduction: 1.25 }
+    },
+    economic: {
+        threshold: 3,
+        name: '💰 Corporate Empire',
+        desc: 'All purchases cost 20% less',
+        bonus: { globalCostReduction: 0.8 }
+    },
+    scientific: {
+        threshold: 3,
+        name: '🔬 Research Network',
+        desc: 'Gain 50% more apocalypse tokens',
+        bonus: { tokenMultiplier: 1.5 }
     }
 };
 
@@ -1413,6 +2045,24 @@ function getDepartmentCost(deptId) {
         cost = Math.floor(cost * MUTATIONS.zombiePlague.value);
     }
 
+    // Apply apocalypse type effects - Meteor Strike cost increase
+    if (gameState.activeApocalypseEffects?.departmentCostMult) {
+        cost = Math.floor(cost * gameState.activeApocalypseEffects.departmentCostMult);
+    }
+
+    // Apply Economic Collapse permanent cost reduction
+    if (gameState.persistentUnlocks?.economicCollapse) {
+        cost = Math.floor(cost * 0.5); // 50% cheaper
+    }
+
+    // Apply specialization cost reduction
+    const costReduction = getSpecializationBonus(deptId, 'costReduction');
+    cost = Math.floor(cost * costReduction);
+
+    // Apply synergy cost reduction
+    const synergyReduction = getSynergyBonus('globalCostReduction');
+    cost = Math.floor(cost * synergyReduction);
+
     return cost;
 }
 
@@ -1435,6 +2085,14 @@ function getDepartmentProduction(deptId) {
     const achievementMults = getAchievementMultipliers();
     production *= achievementMults.production;
 
+    // Apply specialization production bonus
+    const specProdBonus = getSpecializationBonus(deptId, 'production');
+    production *= specProdBonus;
+
+    // Apply synergy global production bonus
+    const synergyProdBonus = getSynergyBonus('globalProduction');
+    production *= synergyProdBonus;
+
     // Apply scenario effects
     if (gameState.currentScenario) {
         gameState.currentScenario.effects.forEach(effect => {
@@ -1443,6 +2101,14 @@ function getDepartmentProduction(deptId) {
             }
         });
     }
+
+    // Apply apocalypse type effects - Meteor Strike production boost
+    if (gameState.activeApocalypseEffects?.productionMult) {
+        production *= gameState.activeApocalypseEffects.productionMult;
+    }
+
+    // Apply department focus multiplier
+    production *= getFocusMultiplier(deptId);
 
     return production;
 }
@@ -1561,6 +2227,106 @@ function unlockMutation(mutationId) {
     }
 }
 
+// Specialization System
+function selectSpecialization(deptId, specializationId) {
+    const dept = DEPARTMENTS[deptId];
+    const spec = SPECIALIZATIONS[specializationId];
+
+    // Check if department has at least 1 owned
+    if (!gameState.departments[deptId] || gameState.departments[deptId].count === 0) {
+        addLog('❌ You must own at least 1 of this department to specialize it!');
+        return;
+    }
+
+    // Check if already specialized
+    if (gameState.departmentSpecializations[deptId]) {
+        addLog('❌ This department is already specialized! Specializations are permanent.');
+        return;
+    }
+
+    // Specialization cost: 10x the department's current cost
+    const cost = getDepartmentCost(deptId) * 10;
+
+    if (gameState.chaosPoints >= cost) {
+        gameState.chaosPoints -= cost;
+        gameState.departmentSpecializations[deptId] = specializationId;
+
+        // Recalculate synergies
+        calculateSynergyBonuses();
+
+        needsRender.departments = true;
+        updateDisplay();
+        addLog(`✨ Specialized ${dept.name} as ${spec.name}!`);
+
+        // Play purchase sound
+        if (gameState.soundEnabled) {
+            playSound('purchase');
+        }
+    } else {
+        addLog(`Not enough chaos! Need ${formatNumber(cost)} chaos points.`);
+    }
+}
+
+function calculateSynergyBonuses() {
+    // Count specializations by type
+    const counts = { military: 0, economic: 0, scientific: 0 };
+
+    Object.values(gameState.departmentSpecializations).forEach(specId => {
+        if (counts[specId] !== undefined) {
+            counts[specId]++;
+        }
+    });
+
+    // Check which synergies are active
+    gameState.activeSynergies = [];
+
+    Object.keys(SYNERGIES).forEach(specId => {
+        const synergy = SYNERGIES[specId];
+        if (counts[specId] >= synergy.threshold) {
+            gameState.activeSynergies.push(specId);
+        }
+    });
+
+    return gameState.activeSynergies;
+}
+
+function getSpecializationBonus(deptId, bonusType) {
+    const specId = gameState.departmentSpecializations[deptId];
+    if (!specId) return 1; // No bonus
+
+    const spec = SPECIALIZATIONS[specId];
+    return spec.bonuses[bonusType] || 1;
+}
+
+function getSynergyBonus(bonusType) {
+    let bonus = 1;
+
+    gameState.activeSynergies.forEach(specId => {
+        const synergy = SYNERGIES[specId];
+        if (synergy.bonus[bonusType]) {
+            bonus *= synergy.bonus[bonusType];
+        }
+    });
+
+    return bonus;
+}
+
+function getUpgradeCost(baseUpgradeCost) {
+    let cost = baseUpgradeCost;
+
+    // Check if any department has scientific specialization
+    let scientificDiscount = 1;
+    Object.keys(gameState.departmentSpecializations).forEach(deptId => {
+        const specId = gameState.departmentSpecializations[deptId];
+        if (specId === 'scientific' && SPECIALIZATIONS[specId].bonuses.upgradeDiscount) {
+            scientificDiscount = Math.min(scientificDiscount, SPECIALIZATIONS[specId].bonuses.upgradeDiscount);
+        }
+    });
+
+    cost = Math.floor(cost * scientificDiscount);
+    return cost;
+}
+
 function buyStock(stockId) {
     const stock = gameState.stocks[stockId];
     if (gameState.chaosPoints >= stock.currentPrice) {
@@ -1629,6 +2395,10 @@ function calculateApocalypseReward() {
     // Apply achievement token multiplier
     const achievementMults = getAchievementMultipliers();
     baseReward = Math.floor(baseReward * achievementMults.token);
+
+    // Apply synergy token bonus
+    const synergyTokenBonus = getSynergyBonus('tokenMultiplier');
+    baseReward = Math.floor(baseReward * synergyTokenBonus);
 
     return baseReward;
 }
@@ -1713,6 +2483,151 @@ function completeTutorialApocalypse() {
     updateDisplay();
 }
 
+// ===== APOCALYPSE TYPE SELECTION SYSTEM =====
+
+// Get available apocalypse types
+function getAvailableApocalypseTypes() {
+    return Object.values(APOCALYPSE_TYPES).filter(type => {
+        try {
+            return type.unlockRequirement();
+        } catch (e) {
+            return false;
+        }
+    });
+}
+
+// Show apocalypse type selection screen
+function showApocalypseSelection(reward, runTime) {
+    const availableTypes = getAvailableApocalypseTypes();
+
+    if (availableTypes.length === 0) {
+        // Fallback to standard apocalypse if no types available
+        executeApocalypse(reward, runTime, null);
+        return;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'apocalypse-selection-modal';
+
+    const typesHTML = availableTypes.map(type => {
+        const isFirstTime = !gameState.apocalypseTypesCompleted[type.id];
+        const finalReward = Math.floor(reward * type.tokenMultiplier);
+
+        return `
+            <div class="apocalypse-type-card ${isFirstTime ? 'first-time' : ''}" data-type-id="${type.id}">
+                <div class="apocalypse-type-header">
+                    <span class="apocalypse-type-icon">${type.icon}</span>
+                    <h3>${type.name}</h3>
+                    ${isFirstTime ? '<span class="first-time-badge">NEW!</span>' : ''}
+                </div>
+                <p class="apocalypse-type-desc">${type.desc}</p>
+                <div class="apocalypse-type-effects">
+                    <strong>Effects:</strong>
+                    <div class="effect-text">${type.flavorText}</div>
+                </div>
+                <div class="apocalypse-type-reward">
+                    <strong>Tokens:</strong> 💀 ${finalReward}
+                    ${type.tokenMultiplier !== 1.0 ? ` <span class="multiplier">(${type.tokenMultiplier}x)</span>` : ''}
+                </div>
+                ${isFirstTime && type.firstTimeBonus ? `
+                    <div class="first-time-bonus">
+                        <strong>🎁 First Time Bonus:</strong><br>
+                        +${type.firstTimeBonus.tokens} tokens<br>
+                        ${type.firstTimeBonus.message}
+                    </div>
+                ` : ''}
+                <button class="select-apocalypse-btn" onclick="selectApocalypseType('${type.id}', ${reward}, ${runTime})">
+                    ${type.icon} Choose This Apocalypse
+                </button>
+            </div>
+        `;
+    }).join('');
+
+    modal.innerHTML = `
+        <div class="apocalypse-selection-content">
+            <h2>🌍 CHOOSE YOUR APOCALYPSE 🌍</h2>
+            <p class="selection-subtitle">Each apocalypse type offers unique benefits and challenges</p>
+            <div class="apocalypse-types-grid">
+                ${typesHTML}
+            </div>
+            <button class="cancel-selection-btn" onclick="cancelApocalypseSelection()">Cancel</button>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add('active'), 10);
+}
+
+// Select apocalypse type
+function selectApocalypseType(typeId, baseReward, runTime) {
+    const type = APOCALYPSE_TYPES[typeId];
+    if (!type) return;
+
+    // Close selection modal
+    cancelApocalypseSelection();
+
+    // Calculate final reward
+    let finalReward = Math.floor(baseReward * type.tokenMultiplier);
+
+    // Add first-time bonus
+    const isFirstTime = !gameState.apocalypseTypesCompleted[typeId];
+    if (isFirstTime && type.firstTimeBonus) {
+        finalReward += type.firstTimeBonus.tokens;
+    }
+
+    // Execute apocalypse with selected type
+    executeApocalypse(finalReward, runTime, typeId);
+}
+
+// Cancel apocalypse selection
+function cancelApocalypseSelection() {
+    const modal = document.querySelector('.apocalypse-selection-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => modal.remove(), 300);
+    }
+    addLog('Apocalypse cancelled. Continue building chaos!');
+}
+
+// Apply apocalypse type effects
+function applyApocalypseEffects(typeId) {
+    if (!typeId) return;
+
+    const type = APOCALYPSE_TYPES[typeId];
+    if (!type) return;
+
+    // Store active effects
+    gameState.activeApocalypseEffects = { ...type.effects };
+
+    // Apply persistent unlocks
+    if (type.persistentUnlock) {
+        gameState.persistentUnlocks[type.persistentUnlock] = true;
+    }
+
+    // Apply specific effects
+    if (type.effects.upgradesDisabled) {
+        gameState.upgradesDisabledUntil = Date.now() + type.effects.upgradesDisabledDuration;
+    }
+
+    // Mark as completed
+    const isFirstTime = !gameState.apocalypseTypesCompleted[typeId];
+    gameState.apocalypseTypesCompleted[typeId] = true;
+
+    // Add to history
+    gameState.apocalypseHistory.push({
+        type: typeId,
+        timestamp: Date.now()
+    });
+    gameState.lastApocalypseType = typeId;
+
+    // Show first-time message
+    if (isFirstTime && type.firstTimeBonus) {
+        setTimeout(() => {
+            showNotification('🎉 New Apocalypse Unlocked!', type.firstTimeBonus.message);
+        }, 2000);
+    }
+}
+
 function triggerApocalypse() {
     // Check if this should be tutorial apocalypse
     if (!gameState.tutorialCompleted && gameState.chaosPoints >= 1000) {
@@ -1728,8 +2643,8 @@ function triggerApocalypse() {
         return;
     }
 
-    // Show confirmation modal (unless it's the tutorial)
-    showApocalypseConfirmation(reward, runTime);
+    // Show apocalypse type selection screen
+    showApocalypseSelection(reward, runTime);
 }
 
 function showApocalypseConfirmation(reward, runTime) {
@@ -1782,12 +2697,28 @@ function showApocalypseConfirmation(reward, runTime) {
     setTimeout(() => modal.classList.add('show'), 10);
 }
 
-function executeApocalypse(reward, runTime) {
+function executeApocalypse(reward, runTime, typeId = null) {
 
     // Track best run
     if (!gameState.bestRunTime || runTime < gameState.bestRunTime) {
         gameState.bestRunTime = runTime;
     }
+
+    // Track community stats for apocalypse
+    gameState.lifetimeStats.totalApocalypsesAllTime++;
+    gameState.sessionStats.sessionApocalypses++;
+    
+    // Update fastest apocalypse time
+    if (!gameState.lifetimeStats.fastestApocalypseTime || runTime < gameState.lifetimeStats.fastestApocalypseTime) {
+        gameState.lifetimeStats.fastestApocalypseTime = runTime;
+        updateGlobalLeaderboard('fastestApocalypse', runTime);
+    }
+    
+    // Update total apocalypses leaderboard
+    updateGlobalLeaderboard('totalApocalypses', gameState.lifetimeStats.totalApocalypsesAllTime);
+    
+    // Finalize ghost run
+    finalizeGhostRun();
 
     // Show apocalypse animation
     showApocalypseAnimation(reward, runTime);
@@ -1807,7 +2738,20 @@ function executeApocalypse(reward, runTime) {
     gameState.apocalypseTokens += reward;
     gameState.totalApocalypses++;
 
-    addLog(`💀 THE WORLD HAS ENDED! Gained ${reward} Apocalypse Tokens 💀`);
+    // Apply apocalypse type effects
+    if (typeId) {
+        applyApocalypseEffects(typeId);
+        const typeName = APOCALYPSE_TYPES[typeId]?.name || 'Unknown';
+        addLog(`💀 ${typeName} APOCALYPSE! Gained ${reward} Apocalypse Tokens 💀`);
+    } else {
+        addLog(`💀 THE WORLD HAS ENDED! Gained ${reward} Apocalypse Tokens 💀`);
+    }
+
+    // Store department counts for Time Loop effect
+    const previousDepartments = {};
+    Object.keys(gameState.departments).forEach(id => {
+        previousDepartments[id] = gameState.departments[id].count;
+    });
 
     // Calculate carryover chaos before reset
     const carryoverChaos = gameState.mutations.nuclearWinter?.unlocked ?
@@ -1817,6 +2761,13 @@ function executeApocalypse(reward, runTime) {
     let startingBonus = 0;
     if (gameState.achievements?.speedrun?.unlocked) {
         startingBonus = carryoverChaos * 10 * 0.1; // 10% extra
+    }
+
+    // Check for zombie plague effect - store production for post-apocalypse
+    if (typeId === 'zombie' && APOCALYPSE_TYPES[typeId]?.effects.postApocalypseProduction) {
+        gameState.zombieProductionEndTime = Date.now() + APOCALYPSE_TYPES[typeId].effects.duration;
+        const zombieChaosPerSec = gameState.chaosPerSecond;
+        addLog(`🧟 Zombie departments will generate ${formatNumber(zombieChaosPerSec)}/sec for 10 minutes!`);
     }
 
     // Reset run state
@@ -1834,9 +2785,14 @@ function executeApocalypse(reward, runTime) {
         gameState.doomPerClick *= 1.25;
     }
 
-    // Reset departments
+    // Reset departments (or keep some for Time Loop)
     Object.keys(gameState.departments).forEach(id => {
-        gameState.departments[id].count = 0;
+        if (typeId === 'timeloop' && APOCALYPSE_TYPES[typeId]?.effects.keepDepartments) {
+            const keepPercentage = APOCALYPSE_TYPES[typeId].effects.keepDepartments;
+            gameState.departments[id].count = Math.floor(previousDepartments[id] * keepPercentage);
+        } else {
+            gameState.departments[id].count = 0;
+        }
     });
 
     // Keep mutations but reset upgrades
@@ -2007,6 +2963,27 @@ function handleDoomClick(event) {
     // Track clicks for achievements
     gameState.totalClicks++;
 
+    // Track click statistics for community features
+    gameState.lifetimeStats.totalClicksAllTime++;
+    gameState.sessionStats.sessionClicks++;
+
+    // Track longest combo for leaderboards
+    if (gameState.comboCount > gameState.lifetimeStats.longestCombo) {
+        gameState.lifetimeStats.longestCombo = gameState.comboCount;
+        updateGlobalLeaderboard('longestCombo', gameState.comboCount);
+    }
+
+    // Track clicks for challenge system
+    trackChallengeClick();
+
+    // Track player activity
+    updatePlayerActivity();
+
+    // Check for active doom project to click
+    if (gameState.activeProject && event.shiftKey) {
+        clickProject();
+    }
+
     // Apply scenario effects
     if (gameState.currentScenario) {
         gameState.currentScenario.effects.forEach(effect => {
@@ -2025,6 +3002,8 @@ function handleDoomClick(event) {
     const oldChaos = gameState.totalChaosEarned;
     gameState.chaosPoints += clickPower;
     gameState.totalChaosEarned += clickPower;
+    gameState.lifetimeStats.totalChaosAllTime += clickPower;
+    gameState.sessionStats.sessionChaos += clickPower;
     gameState.doomEnergy += clickPower;
     gameState.doomClockProgress += clickPower;
 
@@ -2203,6 +3182,713 @@ function showApocalypseAnimation(tokensGained, runTime) {
     }, 4000);
 }
 
+// ===== ACTIVE GAMEPLAY MECHANICS =====
+
+// Track player activity
+function updatePlayerActivity() {
+    gameState.lastActivityTime = Date.now();
+}
+
+// Random Events System
+function getAvailableEvents() {
+    return RANDOM_EVENTS.filter(event => {
+        try {
+            return event.requirement();
+        } catch (e) {
+            return false;
+        }
+    });
+}
+
+function triggerRandomEvent() {
+    const availableEvents = getAvailableEvents();
+    if (availableEvents.length === 0) return;
+
+    const event = availableEvents[Math.floor(Math.random() * availableEvents.length)];
+    gameState.activeEvent = event;
+    showEventModal(event);
+}
+
+function showEventModal(event) {
+    const modal = document.createElement('div');
+    modal.className = 'event-modal';
+
+    const choicesHTML = event.choices.map((choice, index) => `
+        <button class="event-choice-btn" onclick="selectEventChoice(${index})">
+            ${choice.text}
+        </button>
+    `).join('');
+
+    modal.innerHTML = `
+        <div class="event-modal-content">
+            <h2>📰 ${event.name}</h2>
+            <p class="event-desc">${event.desc}</p>
+            <div class="event-choices">
+                ${choicesHTML}
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add('active'), 10);
+}
+
+function selectEventChoice(choiceIndex) {
+    if (!gameState.activeEvent) return;
+
+    const choice = gameState.activeEvent.choices[choiceIndex];
+    const result = choice.effect();
+
+    // Add to event history
+    gameState.eventHistory.push({
+        eventId: gameState.activeEvent.id,
+        choice: choice.text,
+        result: result,
+        timestamp: Date.now()
+    });
+
+    // Show result
+    addLog(`📰 Event: ${result}`);
+    showNotification(gameState.activeEvent.name, result);
+
+    // Close modal
+    closeEventModal();
+    gameState.activeEvent = null;
+
+    // Schedule next event
+    gameState.nextEventTime = Date.now() + (120000 + Math.random() * 180000); // 2-5 minutes
+}
+
+function closeEventModal() {
+    const modal = document.querySelector('.event-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => modal.remove(), 300);
+    }
+}
+
+// Department Focus System
+function setDepartmentFocus(deptId) {
+    const now = Date.now();
+
+    if (now - gameState.lastFocusChange < gameState.focusCooldown) {
+        const remaining = Math.ceil((gameState.focusCooldown - (now - gameState.lastFocusChange)) / 1000);
+        addLog(`⏱️ Focus cooldown: ${remaining}s remaining`);
+        return false;
+    }
+
+    gameState.focusedDepartment = deptId;
+    gameState.lastFocusChange = now;
+
+    addLog(`🎯 Focus set to: ${DEPARTMENTS[deptId].name}`);
+    showNotification('Focus Changed', `Now focusing on ${DEPARTMENTS[deptId].name}`);
+
+    needsRender.departments = true;
+    return true;
+}
+
+function clearDepartmentFocus() {
+    gameState.focusedDepartment = null;
+    gameState.lastFocusChange = Date.now();
+    addLog('🎯 Focus cleared');
+}
+
+function getFocusMultiplier(deptId) {
+    if (!gameState.focusedDepartment) return 1;
+
+    if (gameState.focusedDepartment === deptId) {
+        return 3; // 3x production for focused department
+    } else {
+        return 0.5; // 0.5x for others
+    }
+}
+
+// Doom Projects System
+function getAvailableProjects() {
+    return DOOM_PROJECTS.filter(project => {
+        // Check if already completed
+        if (gameState.completedProjects.includes(project.id)) return false;
+        // Check if currently active
+        if (gameState.activeProject?.id === project.id) return false;
+        // Check requirement
+        try {
+            return project.requirement();
+        } catch (e) {
+            return false;
+        }
+    });
+}
+
+function startProject(projectId) {
+    const project = DOOM_PROJECTS.find(p => p.id === projectId);
+    if (!project) return;
+
+    if (gameState.chaosPoints < project.cost) {
+        addLog('❌ Not enough chaos for this project!');
+        return;
+    }
+
+    gameState.chaosPoints -= project.cost;
+    gameState.activeProject = {
+        ...project,
+        startTime: Date.now(),
+        clickProgress: 0
+    };
+    gameState.projectProgress = 0;
+
+    addLog(`🔧 Started project: ${project.name}`);
+    showNotification('Project Started', project.name);
+}
+
+function clickProject() {
+    if (!gameState.activeProject) return;
+
+    gameState.activeProject.clickProgress++;
+    gameState.projectProgress = (gameState.activeProject.clickProgress / gameState.activeProject.clicksRequired) * 100;
+
+    if (gameState.activeProject.clickProgress >= gameState.activeProject.clicksRequired) {
+        completeProject();
+    }
+}
+
+function updateProjectIdleProgress() {
+    if (!gameState.activeProject) return;
+
+    const elapsed = Date.now() - gameState.activeProject.startTime;
+    const idleProgress = (elapsed / gameState.activeProject.idleTime) * 100;
+    const clickProgress = (gameState.activeProject.clickProgress / gameState.activeProject.clicksRequired) * 100;
+
+    gameState.projectProgress = Math.max(idleProgress, clickProgress);
+
+    if (gameState.projectProgress >= 100) {
+        completeProject();
+    }
+}
+
+function completeProject() {
+    if (!gameState.activeProject) return;
+
+    const project = gameState.activeProject;
+
+    // Apply reward
+    switch (project.reward.type) {
+        case 'multiplier':
+            if (project.reward.target === 'all_production') {
+                Object.keys(gameState.upgradeMultipliers).forEach(key => {
+                    gameState.upgradeMultipliers[key] *= project.reward.value;
+                });
+            } else if (project.reward.target === 'click_power') {
+                gameState.doomPerClick *= project.reward.value;
+            }
+            break;
+        case 'unlock':
+            gameState.persistentUnlocks[project.reward.value] = true;
+            break;
+        case 'ability':
+            gameState.persistentUnlocks[project.reward.value] = true;
+            break;
+    }
+
+    gameState.completedProjects.push(project.id);
+    addLog(`✅ ${project.name} completed!`);
+    showNotification('🎉 Project Complete!', project.reward.message);
+
+    if (gameState.soundEnabled) {
+        playSound('achievement');
+    }
+
+    gameState.activeProject = null;
+    gameState.projectProgress = 0;
+}
+
+// Crisis Management Minigame
+function triggerCrisis() {
+    const crisisTypes = [
+        {
+            name: '🚨 Resource Allocation Crisis',
+            desc: 'Distribute resources quickly!',
+            decisions: [
+                { question: 'Allocate to Production?', correct: true },
+                { question: 'Invest in Marketing?', correct: false },
+                { question: 'Upgrade Infrastructure?', correct: true }
+            ]
+        },
+        {
+            name: '⚡ Emergency Response',
+            desc: 'Make critical decisions fast!',
+            decisions: [
+                { question: 'Evacuate personnel?', correct: false },
+                { question: 'Contain the chaos?', correct: true },
+                { question: 'Call for backup?', correct: true }
+            ]
+        }
+    ];
+
+    const crisis = crisisTypes[Math.floor(Math.random() * crisisTypes.length)];
+
+    gameState.activeCrisis = {
+        ...crisis,
+        currentDecision: 0,
+        correctCount: 0,
+        incorrectCount: 0
+    };
+    gameState.crisisStartTime = Date.now();
+    gameState.crisisDecisionsMade = 0;
+
+    showCrisisModal();
+}
+
+function showCrisisModal() {
+    if (!gameState.activeCrisis) return;
+
+    const crisis = gameState.activeCrisis;
+    const timeLeft = Math.max(0, 30 - (Date.now() - gameState.crisisStartTime) / 1000);
+
+    const modal = document.createElement('div');
+    modal.className = 'crisis-modal';
+    modal.id = 'crisisModal';
+
+    const currentQ = crisis.decisions[crisis.currentDecision];
+
+    modal.innerHTML = `
+        <div class="crisis-modal-content">
+            <h2>${crisis.name}</h2>
+            <p class="crisis-desc">${crisis.desc}</p>
+            <div class="crisis-timer">⏱️ ${Math.ceil(timeLeft)}s</div>
+            <div class="crisis-progress">Decision ${crisis.currentDecision + 1} / ${crisis.decisions.length}</div>
+            <div class="crisis-question">
+                <h3>${currentQ.question}</h3>
+                <div class="crisis-buttons">
+                    <button class="crisis-btn crisis-yes" onclick="makeCrisisDecision(true)">✅ YES</button>
+                    <button class="crisis-btn crisis-no" onclick="makeCrisisDecision(false)">❌ NO</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Remove old modal if exists
+    const oldModal = document.getElementById('crisisModal');
+    if (oldModal) oldModal.remove();
+
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add('active'), 10);
+}
+
+function makeCrisisDecision(answer) {
+    if (!gameState.activeCrisis) return;
+
+    const crisis = gameState.activeCrisis;
+    const currentQ = crisis.decisions[crisis.currentDecision];
+    const timeLeft = 30 - (Date.now() - gameState.crisisStartTime) / 1000;
+
+    // Check if time ran out
+    if (timeLeft <= 0) {
+        failCrisis();
+        return;
+    }
+
+    // Check answer
+    if (answer === currentQ.correct) {
+        crisis.correctCount++;
+    } else {
+        crisis.incorrectCount++;
+    }
+
+    crisis.currentDecision++;
+    gameState.crisisDecisionsMade++;
+
+    // Check if all decisions made
+    if (crisis.currentDecision >= crisis.decisions.length) {
+        completeCrisis();
+    } else {
+        showCrisisModal();
+    }
+}
+
+function completeCrisis() {
+    if (!gameState.activeCrisis) return;
+
+    const crisis = gameState.activeCrisis;
+    const successRate = crisis.correctCount / crisis.decisions.length;
+
+    // Close modal
+    const modal = document.getElementById('crisisModal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => modal.remove(), 300);
+    }
+
+    if (successRate >= 0.66) {
+        // Success
+        const bonus = Math.floor(gameState.chaosPerSecond * 120); // 2 minutes worth
+        gameState.chaosPoints += bonus;
+        addLog(`✅ Crisis managed! Earned ${formatNumber(bonus)} chaos bonus!`);
+        showNotification('Crisis Averted!', `Earned ${formatNumber(bonus)} chaos!`);
+    } else {
+        // Failure
+        Object.keys(gameState.upgradeMultipliers).forEach(key => {
+            gameState.upgradeMultipliers[key] *= 0.9;
+        });
+        addLog('❌ Crisis mishandled. Production -10% for 2 minutes.');
+        showNotification('Crisis Failed', 'Production temporarily reduced');
+
+        // Restore after 2 minutes
+        setTimeout(() => {
+            Object.keys(gameState.upgradeMultipliers).forEach(key => {
+                gameState.upgradeMultipliers[key] /= 0.9;
+            });
+            addLog('Production penalty expired');
+        }, 120000);
+    }
+
+    gameState.activeCrisis = null;
+    gameState.lastCrisisTime = Date.now();
+}
+
+function failCrisis() {
+    const modal = document.getElementById('crisisModal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => modal.remove(), 300);
+    }
+
+    addLog('❌ Crisis failed - time ran out!');
+    showNotification('Time\'s Up!', 'Crisis management failed');
+
+    gameState.activeCrisis = null;
+    gameState.lastCrisisTime = Date.now();
+}
+
+// ===== CHALLENGE SYSTEM =====
+
+// Get available challenges based on requirements
+function getAvailableChallenges() {
+    return CHALLENGES.filter(challenge => {
+        try {
+            return challenge.requirement();
+        } catch (e) {
+            return false;
+        }
+    });
+}
+
+// Select random challenge from available pool
+function selectRandomChallenge() {
+    const available = getAvailableChallenges();
+    if (available.length === 0) return null;
+    return available[Math.floor(Math.random() * available.length)];
+}
+
+// Show challenge notification modal
+function showChallengeNotification(challenge) {
+    const modal = document.createElement('div');
+    modal.className = 'challenge-modal';
+    modal.innerHTML = `
+        <div class="challenge-modal-content">
+            <h2>🎯 NEW CHALLENGE AVAILABLE!</h2>
+            <div class="challenge-info">
+                <h3>${challenge.name}</h3>
+                <p>${challenge.desc}</p>
+                <div class="challenge-rewards">
+                    <strong>Rewards:</strong>
+                    <div>💰 ${formatNumber(challenge.reward.chaos)} Chaos Points</div>
+                    ${challenge.reward.multiplier ?
+                        `<div>⚡ ${challenge.reward.multiplier.value}x production for ${challenge.reward.multiplier.duration}s</div>` : ''}
+                </div>
+            </div>
+            <div class="challenge-buttons">
+                <button class="challenge-accept" onclick="acceptChallenge('${challenge.id}')">✅ Accept</button>
+                <button class="challenge-decline" onclick="declineChallenge()">❌ Decline</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add('active'), 10);
+}
+
+// Accept challenge
+function acceptChallenge(challengeId) {
+    const challenge = CHALLENGES.find(c => c.id === challengeId);
+    if (!challenge) return;
+
+    gameState.activeChallenge = {
+        ...challenge,
+        startChaos: gameState.chaosPoints,
+        startClicks: gameState.totalClicks,
+        comboStartTime: 0,
+        clicksInChallenge: 0
+    };
+    gameState.challengeStartTime = Date.now();
+    gameState.challengeProgress = 0;
+
+    closeChallengeModal();
+    addLog(`🎯 Challenge accepted: ${challenge.name}`);
+    updateChallengeDisplay();
+}
+
+// Decline challenge
+function declineChallenge() {
+    closeChallengeModal();
+    // Schedule next challenge in 3-5 minutes
+    gameState.nextChallengeTime = Date.now() + (180000 + Math.random() * 120000);
+    gameState.challengeNotificationShown = false;
+}
+
+// Close challenge modal
+function closeChallengeModal() {
+    const modal = document.querySelector('.challenge-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => modal.remove(), 300);
+    }
+}
+
+// Update challenge progress
+function updateChallengeProgress() {
+    if (!gameState.activeChallenge) return;
+
+    const challenge = gameState.activeChallenge;
+    const now = Date.now();
+    const elapsed = (now - gameState.challengeStartTime) / 1000;
+
+    let progress = 0;
+    let completed = false;
+    let failed = false;
+
+    switch (challenge.type) {
+        case 'speed':
+            const chaosGenerated = gameState.chaosPoints - challenge.startChaos;
+            progress = (chaosGenerated / challenge.goal) * 100;
+            completed = chaosGenerated >= challenge.goal;
+            failed = elapsed >= challenge.timeLimit && !completed;
+            break;
+
+        case 'efficiency':
+            const deptCount = gameState.departments[challenge.restrictedDept]?.count || 0;
+            if (deptCount > 0) {
+                failed = true;
+            } else {
+                progress = (gameState.chaosPerSecond / challenge.goal) * 100;
+                completed = gameState.chaosPerSecond >= challenge.goal;
+            }
+            break;
+
+        case 'clicking':
+            progress = (challenge.clicksInChallenge / challenge.goal) * 100;
+            completed = challenge.clicksInChallenge >= challenge.goal;
+            failed = elapsed >= challenge.timeLimit && !completed;
+            break;
+
+        case 'combo':
+            if (gameState.comboCount >= challenge.goal) {
+                if (challenge.comboStartTime === 0) {
+                    challenge.comboStartTime = now;
+                }
+                const comboHoldTime = (now - challenge.comboStartTime) / 1000;
+                progress = (comboHoldTime / challenge.duration) * 100;
+                completed = comboHoldTime >= challenge.duration;
+            } else {
+                challenge.comboStartTime = 0;
+                progress = 0;
+            }
+            // Combo challenges don't fail, they just reset progress
+            break;
+    }
+
+    gameState.challengeProgress = Math.min(100, progress);
+
+    if (completed) {
+        completeChallenge();
+    } else if (failed) {
+        failChallenge();
+    }
+}
+
+// Complete challenge
+function completeChallenge() {
+    if (!gameState.activeChallenge) return;
+
+    const challenge = gameState.activeChallenge;
+    const reward = challenge.reward;
+
+    // Award chaos
+    gameState.chaosPoints += reward.chaos;
+    gameState.totalChaosEarned += reward.chaos;
+
+    // Award temporary multiplier
+    if (reward.multiplier) {
+        applyTemporaryMultiplier(reward.multiplier.value, reward.multiplier.duration);
+    }
+
+    gameState.challengesCompleted++;
+
+    addLog(`✅ Challenge completed: ${challenge.name}! Earned ${formatNumber(reward.chaos)} chaos!`);
+    showNotification('🎉 Challenge Complete!', `You earned ${formatNumber(reward.chaos)} chaos points!`);
+
+    if (gameState.soundEnabled) {
+        playSound('achievement');
+    }
+
+    // Clear challenge
+    gameState.activeChallenge = null;
+    gameState.challengeProgress = 0;
+
+    // Schedule next challenge
+    gameState.nextChallengeTime = Date.now() + (180000 + Math.random() * 120000);
+    gameState.challengeNotificationShown = false;
+
+    updateChallengeDisplay();
+}
+
+// Fail challenge
+function failChallenge() {
+    if (!gameState.activeChallenge) return;
+
+    const challenge = gameState.activeChallenge;
+    addLog(`❌ Challenge failed: ${challenge.name}`);
+
+    gameState.activeChallenge = null;
+    gameState.challengeProgress = 0;
+
+    // Schedule next challenge
+    gameState.nextChallengeTime = Date.now() + (180000 + Math.random() * 120000);
+    gameState.challengeNotificationShown = false;
+
+    updateChallengeDisplay();
+}
+
+// Apply temporary multiplier
+function applyTemporaryMultiplier(multiplier, duration) {
+    const originalMultipliers = {};
+
+    // Store original multipliers
+    Object.keys(gameState.upgradeMultipliers).forEach(deptId => {
+        originalMultipliers[deptId] = gameState.upgradeMultipliers[deptId];
+        gameState.upgradeMultipliers[deptId] *= multiplier;
+    });
+
+    addLog(`⚡ ${multiplier}x production boost active for ${duration}s!`);
+
+    // Reset after duration
+    setTimeout(() => {
+        Object.keys(originalMultipliers).forEach(deptId => {
+            gameState.upgradeMultipliers[deptId] = originalMultipliers[deptId];
+        });
+        addLog(`⚡ Production boost expired`);
+    }, duration * 1000);
+}
+
+// Update challenge display
+function updateChallengeDisplay() {
+    const container = document.getElementById('challengeContainer');
+    if (!container) return;
+
+    if (!gameState.activeChallenge) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+
+    const challenge = gameState.activeChallenge;
+    const now = Date.now();
+    const elapsed = (now - gameState.challengeStartTime) / 1000;
+
+    document.getElementById('challengeName').textContent = challenge.name;
+    document.getElementById('challengeDesc').textContent = challenge.desc;
+
+    // Update progress bar
+    const progressBar = document.getElementById('challengeProgressBar');
+    progressBar.style.width = gameState.challengeProgress + '%';
+
+    // Update progress text based on type
+    let progressText = '';
+    switch (challenge.type) {
+        case 'speed':
+            const chaosGenerated = Math.floor(gameState.chaosPoints - challenge.startChaos);
+            progressText = `${formatNumber(chaosGenerated)} / ${formatNumber(challenge.goal)} chaos`;
+            break;
+        case 'efficiency':
+            progressText = `${formatNumber(gameState.chaosPerSecond)} / ${formatNumber(challenge.goal)} chaos/sec`;
+            break;
+        case 'clicking':
+            progressText = `${challenge.clicksInChallenge} / ${challenge.goal} clicks`;
+            break;
+        case 'combo':
+            const comboTime = challenge.comboStartTime > 0 ?
+                ((now - challenge.comboStartTime) / 1000).toFixed(1) : 0;
+            progressText = `${comboTime}s / ${challenge.duration}s at ${challenge.goal}x combo`;
+            break;
+    }
+    document.getElementById('challengeProgressText').textContent = progressText;
+
+    // Update timer for timed challenges
+    const timerEl = document.getElementById('challengeTimer');
+    if (challenge.timeLimit) {
+        const remaining = Math.max(0, challenge.timeLimit - elapsed);
+        timerEl.textContent = `⏱️ ${Math.ceil(remaining)}s`;
+        timerEl.style.display = 'block';
+    } else {
+        timerEl.style.display = 'none';
+    }
+}
+
+// Track clicks for clicking challenges
+function trackChallengeClick() {
+    if (gameState.activeChallenge && gameState.activeChallenge.type === 'clicking') {
+        gameState.activeChallenge.clicksInChallenge++;
+    }
+}
+
+// Update project display
+function updateProjectDisplay() {
+    const container = document.getElementById('projectContainer');
+    if (!container) return;
+
+    if (!gameState.activeProject) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+
+    document.getElementById('projectName').textContent = gameState.activeProject.name;
+    document.getElementById('projectDesc').textContent = gameState.activeProject.desc;
+
+    const progressBar = document.getElementById('projectProgressBar');
+    progressBar.style.width = gameState.projectProgress + '%';
+
+    document.getElementById('projectProgressText').textContent = `${Math.floor(gameState.projectProgress)}%`;
+}
+
+// Update focus display
+function updateFocusDisplay() {
+    const statusEl = document.getElementById('focusStatus');
+    const cooldownEl = document.getElementById('focusCooldown');
+
+    if (!statusEl) return;
+
+    if (gameState.focusedDepartment) {
+        const deptName = DEPARTMENTS[gameState.focusedDepartment]?.name || 'Unknown';
+        statusEl.textContent = `🎯 Focused: ${deptName}`;
+        statusEl.style.color = '#4caf50';
+    } else {
+        statusEl.textContent = 'No focus active';
+        statusEl.style.color = '#6495ed';
+    }
+
+    // Show cooldown if applicable
+    const now = Date.now();
+    const timeSinceChange = now - gameState.lastFocusChange;
+    if (timeSinceChange < gameState.focusCooldown) {
+        const remaining = Math.ceil((gameState.focusCooldown - timeSinceChange) / 1000);
+        cooldownEl.textContent = `⏱️ Cooldown: ${remaining}s`;
+        cooldownEl.style.display = 'block';
+    } else {
+        cooldownEl.style.display = 'none';
+    }
+}
+
 // Game loop
 function gameTick() {
     const now = Date.now();
@@ -2231,6 +3917,20 @@ function gameTick() {
     const passiveChaos = gameState.chaosPerSecond * delta;
     gameState.chaosPoints += passiveChaos;
     gameState.totalChaosEarned += passiveChaos;
+    gameState.lifetimeStats.totalChaosAllTime += passiveChaos;
+    gameState.sessionStats.sessionChaos += passiveChaos;
+
+    // Track highest chaos/sec for leaderboards
+    if (gameState.chaosPerSecond > gameState.lifetimeStats.highestChaosPerSec) {
+        gameState.lifetimeStats.highestChaosPerSec = gameState.chaosPerSecond;
+        updateGlobalLeaderboard('highestChaosPerSec', gameState.chaosPerSecond);
+    }
+
+    // Record ghost run snapshots
+    recordGhostSnapshot();
+
+    // Update weekly challenge progress
+    updateWeeklyChallengeProgress();
 
     // Periodically check achievements (every second)
     if (Math.floor(now / 1000) !== Math.floor((now - delta * 1000) / 1000)) {
@@ -2242,6 +3942,65 @@ function gameTick() {
         gameState.tutorialHintShown = true;
         showNotification('💡 Almost there!', 'Reach 1,000 chaos for your first apocalypse and unlock the true game!');
         addLog('💡 Almost there! Reach 1,000 chaos for your first apocalypse!');
+    }
+
+    // Challenge system
+    // Check if it's time to offer a new challenge
+    if (!gameState.activeChallenge && !gameState.challengeNotificationShown) {
+        if (gameState.nextChallengeTime === 0) {
+            // Initialize first challenge time (3-5 minutes after game start)
+            gameState.nextChallengeTime = now + (180000 + Math.random() * 120000);
+        } else if (now >= gameState.nextChallengeTime) {
+            const challenge = selectRandomChallenge();
+            if (challenge) {
+                showChallengeNotification(challenge);
+                gameState.challengeNotificationShown = true;
+            } else {
+                // No available challenges, try again later
+                gameState.nextChallengeTime = now + 60000; // Try again in 1 minute
+            }
+        }
+    }
+
+    // Update active challenge progress
+    if (gameState.activeChallenge) {
+        updateChallengeProgress();
+        updateChallengeDisplay();
+    }
+
+    // Active Gameplay Mechanics
+    // Check for player activity and trigger random events
+    const timeSinceActivity = now - gameState.lastActivityTime;
+    const isActive = timeSinceActivity < 5000; // Consider active if interaction within 5 seconds
+
+    if (isActive && !gameState.activeEvent && !gameState.activeCrisis) {
+        if (gameState.nextEventTime === 0) {
+            // Initialize first event time (2-5 minutes)
+            gameState.nextEventTime = now + (120000 + Math.random() * 180000);
+        } else if (now >= gameState.nextEventTime) {
+            triggerRandomEvent();
+        }
+    }
+
+    // Update Doom Project idle progress
+    if (gameState.activeProject) {
+        updateProjectIdleProgress();
+    }
+
+    // Trigger crisis when departments reach milestones
+    if (!gameState.activeCrisis && now - gameState.lastCrisisTime > 600000) { // At least 10 min between crises
+        const totalDepartments = Object.values(gameState.departments).reduce((sum, dept) => sum + dept.count, 0);
+        if (totalDepartments >= 50 && Math.random() < 0.01) { // 1% chance per tick when 50+ departments
+            triggerCrisis();
+        }
+    }
+
+    // Update crisis timer
+    if (gameState.activeCrisis) {
+        const elapsed = (now - gameState.crisisStartTime) / 1000;
+        if (elapsed >= 30) {
+            failCrisis();
+        }
     }
 
     updateDisplay();
@@ -2374,6 +4133,13 @@ function updateDisplay() {
         }
     }
 
+    // Update synergies display
+    renderSynergies();
+
+    // Update active gameplay mechanics displays
+    updateProjectDisplay();
+    updateFocusDisplay();
+
     // Only re-render lists when needed (after purchases/changes)
     if (needsRender.departments) {
         renderDepartments();
@@ -2493,12 +4259,38 @@ function renderDepartments() {
         div.className = isUnlocked ? 'department-item' : 'department-item locked';
 
         if (isUnlocked) {
+            const currentSpec = gameState.departmentSpecializations[dept.id];
+            const hasSpec = !!currentSpec;
+            const specCost = getDepartmentCost(dept.id) * 10;
+
             div.innerHTML = `
                 <div class="item-header">
                     <span class="item-name">${dept.icon} ${dept.name}</span>
                     <span class="item-count">Owned: ${count}</span>
                 </div>
                 <div class="item-desc">${dept.desc}</div>
+                ${hasSpec ? `
+                    <div class="specialization-active">
+                        <span style="color: ${SPECIALIZATIONS[currentSpec].color}">
+                            ${SPECIALIZATIONS[currentSpec].name}
+                        </span>
+                    </div>
+                ` : count > 0 ? `
+                    <div class="specialization-selector">
+                        <div class="spec-label">Choose Specialization (${formatNumber(specCost)} chaos):</div>
+                        <div class="spec-buttons">
+                            <button class="spec-button" data-spec="military" style="border-color: ${SPECIALIZATIONS.military.color}">
+                                ⚔️
+                            </button>
+                            <button class="spec-button" data-spec="economic" style="border-color: ${SPECIALIZATIONS.economic.color}">
+                                💰
+                            </button>
+                            <button class="spec-button" data-spec="scientific" style="border-color: ${SPECIALIZATIONS.scientific.color}">
+                                🔬
+                            </button>
+                        </div>
+                    </div>
+                ` : ''}
                 <div class="item-footer">
                     <span class="item-production">+${formatNumber(dept.baseProduction)}/sec each</span>
                     <button class="buy-button" ${!canAfford ? 'disabled' : ''}>
@@ -2507,6 +4299,22 @@ function renderDepartments() {
                 </div>
             `;
             div.querySelector('.buy-button').onclick = () => buyDepartment(dept.id);
+
+            // Add specialization button listeners
+            div.querySelectorAll('.spec-button').forEach(btn => {
+                btn.onclick = () => selectSpecialization(dept.id, btn.dataset.spec);
+                btn.title = SPECIALIZATIONS[btn.dataset.spec].name + '\n' +
+                    Object.entries(SPECIALIZATIONS[btn.dataset.spec].bonuses)
+                        .map(([key, val]) => {
+                            if (key === 'production') return `+${((val - 1) * 100).toFixed(0)}% production`;
+                            if (key === 'costReduction') return `-${((1 - val) * 100).toFixed(0)}% costs`;
+                            if (key === 'upgradeDiscount') return `-${((1 - val) * 100).toFixed(0)}% upgrade costs`;
+                            if (key === 'clickPower') return `+${((val - 1) * 100).toFixed(0)}% click power`;
+                            return '';
+                        })
+                        .filter(s => s)
+                        .join(', ');
+            });
         } else {
             div.innerHTML = `
                 <div class="item-header">
@@ -2560,6 +4368,35 @@ function renderUpgrades() {
     if (container.children.length === 0) {
         container.innerHTML = '<div class="item-desc">All upgrades purchased! Trigger an apocalypse for more.</div>';
     }
+}
+
+function renderSynergies() {
+    const container = document.getElementById('synergiesList');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (gameState.activeSynergies.length === 0) {
+        container.innerHTML = '<div class="synergy-empty">No active synergies. Specialize 3+ departments with the same path!</div>';
+        return;
+    }
+
+    gameState.activeSynergies.forEach(specId => {
+        const synergy = SYNERGIES[specId];
+        const spec = SPECIALIZATIONS[specId];
+
+        const div = document.createElement('div');
+        div.className = 'synergy-card';
+        div.style.borderColor = spec.color;
+        div.innerHTML = `
+            <div class="synergy-header">
+                <span class="synergy-name" style="color: ${spec.color}">${synergy.name}</span>
+            </div>
+            <div class="synergy-desc">${synergy.desc}</div>
+        `;
+
+        container.appendChild(div);
+    });
 }
 
 function renderStocks() {
@@ -2762,6 +4599,641 @@ function getCurrentProgress(achievement) {
         default:
             return 0;
     }
+}
+
+// ===== COMMUNITY FEATURES =====
+
+// Local Leaderboards System
+function getGlobalLeaderboard() {
+    let leaderboard = localStorage.getItem('apocalypseCorpLeaderboard');
+    if (!leaderboard) {
+        leaderboard = {
+            fastestApocalypse: [],
+            highestChaosPerSec: [],
+            longestCombo: [],
+            totalApocalypses: []
+        };
+    } else {
+        leaderboard = JSON.parse(leaderboard);
+    }
+    return leaderboard;
+}
+
+function updateGlobalLeaderboard(category, value, playerData = {}) {
+    const leaderboard = getGlobalLeaderboard();
+    
+    if (!leaderboard[category]) {
+        leaderboard[category] = [];
+    }
+    
+    const entry = {
+        value: value,
+        timestamp: Date.now(),
+        playerName: playerData.name || 'Anonymous',
+        apocalypses: gameState.totalApocalypses
+    };
+    
+    leaderboard[category].push(entry);
+    leaderboard[category].sort((a, b) => {
+        if (category === 'fastestApocalypse') {
+            return a.value - b.value; // Lower is better
+        }
+        return b.value - a.value; // Higher is better
+    });
+    
+    // Keep only top 100
+    leaderboard[category] = leaderboard[category].slice(0, 100);
+    
+    localStorage.setItem('apocalypseCorpLeaderboard', JSON.stringify(leaderboard));
+    return leaderboard;
+}
+
+function calculatePercentileRank(category, value) {
+    const leaderboard = getGlobalLeaderboard();
+    const entries = leaderboard[category] || [];
+    
+    if (entries.length === 0) return 50; // Default to 50th percentile
+    
+    let betterCount = 0;
+    entries.forEach(entry => {
+        if (category === 'fastestApocalypse') {
+            if (entry.value < value) betterCount++;
+        } else {
+            if (entry.value > value) betterCount++;
+        }
+    });
+    
+    const percentile = 100 - Math.round((betterCount / entries.length) * 100);
+    return Math.max(1, Math.min(100, percentile));
+}
+
+// Achievement Sharing System
+function generateShareText(achievement) {
+    const emoji = achievement ? achievement.icon : '💀';
+    const totalApocalypses = gameState.totalApocalypses || gameState.lifetimeStats.totalApocalypsesAllTime;
+    
+    return `I triggered ${totalApocalypses} apocalypses in Apocalypse Corp! ${emoji}\n` +
+           `💀 Total Chaos: ${formatNumber(gameState.lifetimeStats.totalChaosAllTime)}\n` +
+           `⚡ Highest Chaos/sec: ${formatNumber(gameState.lifetimeStats.highestChaosPerSec)}\n` +
+           `🔥 Longest Combo: ${gameState.lifetimeStats.longestCombo}x`;
+}
+
+function generateShareImage() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d');
+    
+    // Background gradient
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, '#1a1a2e');
+    gradient.addColorStop(1, '#16213e');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 800, 400);
+    
+    // Title
+    ctx.fillStyle = '#ff6b6b';
+    ctx.font = 'bold 48px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('🏢 APOCALYPSE CORP™', 400, 60);
+    
+    // Stats box
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.fillRect(50, 100, 700, 250);
+    ctx.strokeStyle = '#4a4a6a';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(50, 100, 700, 250);
+    
+    // Stats
+    ctx.fillStyle = '#4fc3f7';
+    ctx.font = 'bold 32px "Courier New", monospace';
+    ctx.textAlign = 'left';
+    
+    const stats = [
+        `💀 Total Apocalypses: ${gameState.lifetimeStats.totalApocalypsesAllTime}`,
+        `💰 Total Chaos: ${formatNumber(gameState.lifetimeStats.totalChaosAllTime)}`,
+        `⚡ Highest Chaos/sec: ${formatNumber(gameState.lifetimeStats.highestChaosPerSec)}`,
+        `🔥 Longest Combo: ${gameState.lifetimeStats.longestCombo}x`
+    ];
+    
+    stats.forEach((stat, i) => {
+        ctx.fillText(stat, 80, 160 + (i * 50));
+    });
+    
+    // Footer
+    ctx.fillStyle = '#888';
+    ctx.font = '20px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Monetizing the End Times Since 2025', 400, 380);
+    
+    return canvas;
+}
+
+function copyShareTextToClipboard() {
+    const text = generateShareText();
+    navigator.clipboard.writeText(text).then(() => {
+        showNotification('📋 Copied!', 'Share text copied to clipboard');
+        addLog('📋 Share text copied to clipboard!');
+    }).catch(err => {
+        addLog('❌ Failed to copy to clipboard');
+    });
+}
+
+function downloadShareImage() {
+    const canvas = generateShareImage();
+    canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `apocalypse-corp-stats-${Date.now()}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showNotification('📸 Downloaded!', 'Share image saved');
+        addLog('📸 Share image downloaded!');
+    });
+}
+
+// Ghost Run System
+function recordGhostSnapshot() {
+    const now = Date.now();
+    const runTime = now - gameState.runStartTime;
+    
+    // Record snapshot every 5 seconds
+    if (now - gameState.ghostRun.lastSnapshotTime >= 5000) {
+        gameState.ghostRun.currentRunData.push({
+            time: runTime,
+            chaos: gameState.chaosPoints,
+            chaosPerSec: gameState.chaosPerSecond
+        });
+        gameState.ghostRun.lastSnapshotTime = now;
+    }
+}
+
+function finalizeGhostRun() {
+    const currentRunTime = Date.now() - gameState.runStartTime;
+    const currentScore = gameState.chaosPoints;
+    
+    // Check if this is a new best run
+    if (!gameState.ghostRun.bestRunData || 
+        currentScore > (gameState.ghostRun.bestRunData[gameState.ghostRun.bestRunData.length - 1]?.chaos || 0)) {
+        gameState.ghostRun.bestRunData = [...gameState.ghostRun.currentRunData];
+        addLog('👻 New ghost run record set!');
+    }
+    
+    // Reset current run
+    gameState.ghostRun.currentRunData = [];
+    gameState.ghostRun.lastSnapshotTime = 0;
+}
+
+function getGhostComparison() {
+    if (!gameState.ghostRun.bestRunData || gameState.ghostRun.bestRunData.length === 0) {
+        return null;
+    }
+    
+    const currentTime = Date.now() - gameState.runStartTime;
+    const currentChaos = gameState.chaosPoints;
+    
+    // Find closest snapshot in best run
+    let closestSnapshot = null;
+    let minTimeDiff = Infinity;
+    
+    gameState.ghostRun.bestRunData.forEach(snapshot => {
+        const timeDiff = Math.abs(snapshot.time - currentTime);
+        if (timeDiff < minTimeDiff) {
+            minTimeDiff = timeDiff;
+            closestSnapshot = snapshot;
+        }
+    });
+    
+    if (!closestSnapshot) return null;
+    
+    const diff = currentChaos - closestSnapshot.chaos;
+    const percentDiff = (diff / closestSnapshot.chaos) * 100;
+    
+    return {
+        ahead: diff > 0,
+        amount: Math.abs(diff),
+        percent: Math.abs(percentDiff).toFixed(1),
+        ghostChaos: closestSnapshot.chaos
+    };
+}
+
+// Weekly Challenge System
+function getWeekNumber() {
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const pastDaysOfYear = (now - startOfYear) / 86400000;
+    return Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
+}
+
+function generateWeeklyChallengeFromSeed(weekNum) {
+    // Seeded random number generator
+    let seed = weekNum * 9301 + 49297;
+    const seededRandom = () => {
+        seed = (seed * 9301 + 49297) % 233280;
+        return seed / 233280;
+    };
+    
+    const challengeTypes = [
+        {
+            name: 'Speed Demon',
+            desc: 'Trigger an apocalypse in under 10 minutes',
+            goal: 600000, // 10 minutes in ms
+            type: 'speed',
+            difficulty: 0.7
+        },
+        {
+            name: 'Chaos Collector',
+            desc: 'Collect 1 million chaos points',
+            goal: 1000000,
+            type: 'chaos',
+            difficulty: 0.6
+        },
+        {
+            name: 'Click Master',
+            desc: 'Click 500 times',
+            goal: 500,
+            type: 'clicks',
+            difficulty: 0.5
+        },
+        {
+            name: 'Department Tycoon',
+            desc: 'Own 50 departments',
+            goal: 50,
+            type: 'departments',
+            difficulty: 0.6
+        },
+        {
+            name: 'Combo King',
+            desc: 'Achieve a 30x combo',
+            goal: 30,
+            type: 'combo',
+            difficulty: 0.7
+        }
+    ];
+    
+    const index = Math.floor(seededRandom() * challengeTypes.length);
+    const challenge = challengeTypes[index];
+    
+    return {
+        ...challenge,
+        weekNumber: weekNum,
+        completionRate: Math.round(challenge.difficulty * 100) + '%' // Simulated
+    };
+}
+
+function getWeeklyChallenge() {
+    const currentWeek = getWeekNumber();
+    
+    // Check if we need to generate new challenge
+    if (!gameState.weeklyChallenge.currentWeek || 
+        gameState.weeklyChallenge.currentWeek !== currentWeek) {
+        gameState.weeklyChallenge.currentWeek = currentWeek;
+        gameState.weeklyChallenge.completed = false;
+        gameState.weeklyChallenge.progress = 0;
+    }
+    
+    return generateWeeklyChallengeFromSeed(currentWeek);
+}
+
+function updateWeeklyChallengeProgress() {
+    const challenge = getWeeklyChallenge();
+    if (gameState.weeklyChallenge.completed) return;
+    
+    let progress = 0;
+    switch (challenge.type) {
+        case 'speed':
+            const runTime = Date.now() - gameState.runStartTime;
+            progress = Math.min(100, (runTime / challenge.goal) * 100);
+            if (runTime <= challenge.goal && gameState.doomClockProgress >= 100) {
+                gameState.weeklyChallenge.completed = true;
+                showNotification('🏆 Weekly Challenge Complete!', challenge.name);
+            }
+            break;
+        case 'chaos':
+            progress = (gameState.chaosPoints / challenge.goal) * 100;
+            if (gameState.chaosPoints >= challenge.goal) {
+                gameState.weeklyChallenge.completed = true;
+                showNotification('🏆 Weekly Challenge Complete!', challenge.name);
+            }
+            break;
+        case 'clicks':
+            progress = (gameState.sessionStats.sessionClicks / challenge.goal) * 100;
+            if (gameState.sessionStats.sessionClicks >= challenge.goal) {
+                gameState.weeklyChallenge.completed = true;
+                showNotification('🏆 Weekly Challenge Complete!', challenge.name);
+            }
+            break;
+        case 'departments':
+            const totalDepts = Object.values(gameState.departments).reduce((sum, d) => sum + d.count, 0);
+            progress = (totalDepts / challenge.goal) * 100;
+            if (totalDepts >= challenge.goal) {
+                gameState.weeklyChallenge.completed = true;
+                showNotification('🏆 Weekly Challenge Complete!', challenge.name);
+            }
+            break;
+        case 'combo':
+            progress = (gameState.comboCount / challenge.goal) * 100;
+            if (gameState.comboCount >= challenge.goal) {
+                gameState.weeklyChallenge.completed = true;
+                showNotification('🏆 Weekly Challenge Complete!', challenge.name);
+            }
+            break;
+    }
+    
+    gameState.weeklyChallenge.progress = Math.min(100, progress);
+}
+
+// Statistics Dashboard Rendering
+function renderStatsDashboard() {
+    const container = document.getElementById('statsContent');
+    if (!container) return;
+    
+    // Calculate session duration
+    const sessionDuration = Date.now() - gameState.sessionStats.sessionStartTime;
+    
+    container.innerHTML = `
+        <div class="stats-section-box">
+            <h3>📊 Lifetime Statistics</h3>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Total Clicks</div>
+                    <div class="stat-value">${formatNumber(gameState.lifetimeStats.totalClicksAllTime)}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Total Chaos Earned</div>
+                    <div class="stat-value">${formatNumber(gameState.lifetimeStats.totalChaosAllTime)}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Total Apocalypses</div>
+                    <div class="stat-value">${gameState.lifetimeStats.totalApocalypsesAllTime}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Fastest Apocalypse</div>
+                    <div class="stat-value">${gameState.lifetimeStats.fastestApocalypseTime ? formatTime(gameState.lifetimeStats.fastestApocalypseTime) : 'N/A'}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Highest Chaos/sec</div>
+                    <div class="stat-value">${formatNumber(gameState.lifetimeStats.highestChaosPerSec)}/s</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Longest Combo</div>
+                    <div class="stat-value">${gameState.lifetimeStats.longestCombo}x</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-section-box">
+            <h3>📈 Session Statistics</h3>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Session Duration</div>
+                    <div class="stat-value">${formatTime(sessionDuration)}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Session Clicks</div>
+                    <div class="stat-value">${formatNumber(gameState.sessionStats.sessionClicks)}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Session Chaos</div>
+                    <div class="stat-value">${formatNumber(gameState.sessionStats.sessionChaos)}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Session Apocalypses</div>
+                    <div class="stat-value">${gameState.sessionStats.sessionApocalypses}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-section-box">
+            <h3>📊 Performance Graph</h3>
+            <canvas id="statsGraph" width="600" height="200"></canvas>
+        </div>
+    `;
+    
+    // Draw graph
+    drawStatsGraph();
+}
+
+function drawStatsGraph() {
+    const canvas = document.getElementById('statsGraph');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Clear canvas
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Draw grid
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 10; i++) {
+        const y = (height / 10) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+    }
+    
+    // Draw chaos progression if we have ghost data
+    if (gameState.ghostRun.currentRunData && gameState.ghostRun.currentRunData.length > 1) {
+        const data = gameState.ghostRun.currentRunData;
+        const maxChaos = Math.max(...data.map(d => d.chaos), 1);
+        const maxTime = data[data.length - 1].time;
+        
+        // Draw current run
+        ctx.strokeStyle = '#4fc3f7';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        data.forEach((point, i) => {
+            const x = (point.time / maxTime) * width;
+            const y = height - ((point.chaos / maxChaos) * height);
+            
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+        
+        ctx.stroke();
+        
+        // Draw ghost run if exists
+        if (gameState.ghostRun.bestRunData && gameState.ghostRun.bestRunData.length > 1) {
+            const ghostData = gameState.ghostRun.bestRunData;
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            
+            ghostData.forEach((point, i) => {
+                const x = (point.time / maxTime) * width;
+                const y = height - ((point.chaos / maxChaos) * height);
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        
+        // Legend
+        ctx.fillStyle = '#4fc3f7';
+        ctx.font = '12px "Courier New", monospace';
+        ctx.fillText('— Current Run', 10, 20);
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.8)';
+        ctx.fillText('- - - Best Run (Ghost)', 10, 35);
+    } else {
+        // No data yet
+        ctx.fillStyle = '#888';
+        ctx.font = '16px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('Play to generate statistics graph', width / 2, height / 2);
+    }
+}
+
+function renderLeaderboards() {
+    const container = document.getElementById('leaderboardContent');
+    if (!container) return;
+    
+    const leaderboard = getGlobalLeaderboard();
+    
+    const categories = [
+        { id: 'fastestApocalypse', name: '⚡ Fastest Apocalypse', format: formatTime, lower: true },
+        { id: 'highestChaosPerSec', name: '💰 Highest Chaos/sec', format: (v) => formatNumber(v) + '/s', lower: false },
+        { id: 'longestCombo', name: '🔥 Longest Combo', format: (v) => v + 'x', lower: false },
+        { id: 'totalApocalypses', name: '💀 Total Apocalypses', format: formatNumber, lower: false }
+    ];
+    
+    let html = '<div class="leaderboard-tabs">';
+    categories.forEach((cat, i) => {
+        html += `<button class="leaderboard-tab ${i === 0 ? 'active' : ''}" data-category="${cat.id}">${cat.name}</button>`;
+    });
+    html += '</div>';
+    
+    categories.forEach((cat, i) => {
+        const entries = leaderboard[cat.id] || [];
+        const myValue = cat.id === 'fastestApocalypse' ? gameState.lifetimeStats.fastestApocalypseTime :
+                        cat.id === 'highestChaosPerSec' ? gameState.lifetimeStats.highestChaosPerSec :
+                        cat.id === 'longestCombo' ? gameState.lifetimeStats.longestCombo :
+                        gameState.lifetimeStats.totalApocalypsesAllTime;
+        
+        const percentile = myValue ? calculatePercentileRank(cat.id, myValue) : 50;
+        
+        html += `<div class="leaderboard-panel ${i === 0 ? 'active' : ''}" data-category="${cat.id}">`;
+        html += `<div class="my-rank-box">
+            <div class="rank-label">Your Rank</div>
+            <div class="rank-value">Top ${percentile}%</div>
+            <div class="rank-detail">${myValue ? cat.format(myValue) : 'No data yet'}</div>
+        </div>`;
+        
+        html += '<div class="leaderboard-list">';
+        if (entries.length === 0) {
+            html += '<div class="leaderboard-empty">No entries yet. Be the first!</div>';
+        } else {
+            entries.slice(0, 10).forEach((entry, idx) => {
+                html += `<div class="leaderboard-entry">
+                    <div class="entry-rank">#${idx + 1}</div>
+                    <div class="entry-name">${entry.playerName}</div>
+                    <div class="entry-value">${cat.format(entry.value)}</div>
+                </div>`;
+            });
+        }
+        html += '</div></div>';
+    });
+    
+    container.innerHTML = html;
+    
+    // Add tab switching
+    document.querySelectorAll('.leaderboard-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const category = tab.dataset.category;
+            document.querySelectorAll('.leaderboard-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.leaderboard-panel').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelector(`.leaderboard-panel[data-category="${category}"]`).classList.add('active');
+        });
+    });
+}
+
+function renderWeeklyChallenge() {
+    const container = document.getElementById('weeklyContent');
+    if (!container) return;
+    
+    const challenge = getWeeklyChallenge();
+    const completed = gameState.weeklyChallenge.completed;
+    const progress = gameState.weeklyChallenge.progress;
+    
+    container.innerHTML = `
+        <div class="weekly-challenge-box ${completed ? 'completed' : ''}">
+            <h3>🗓️ Week ${challenge.weekNumber} Challenge</h3>
+            <div class="challenge-name-big">${challenge.name}</div>
+            <div class="challenge-desc-big">${challenge.desc}</div>
+            
+            <div class="challenge-progress-container">
+                <div class="challenge-progress-bar">
+                    <div class="challenge-progress-fill" style="width: ${progress}%"></div>
+                </div>
+                <div class="challenge-progress-text">${progress.toFixed(1)}%</div>
+            </div>
+            
+            <div class="challenge-completion-rate">
+                <span>📊 Estimated Global Completion Rate:</span>
+                <span class="completion-value">${challenge.completionRate}</span>
+            </div>
+            
+            ${completed ? '<div class="challenge-completed-badge">✅ COMPLETED!</div>' : ''}
+        </div>
+    `;
+}
+
+function renderGhostRun() {
+    const container = document.getElementById('ghostContent');
+    if (!container) return;
+    
+    const comparison = getGhostComparison();
+    
+    let html = '<div class="ghost-run-box">';
+    html += '<h3>👻 Ghost Run Comparison</h3>';
+    
+    if (!comparison) {
+        html += '<div class="ghost-empty">Complete your first apocalypse to create a ghost run!</div>';
+    } else {
+        const icon = comparison.ahead ? '📈' : '📉';
+        const color = comparison.ahead ? '#4caf50' : '#f44336';
+        const text = comparison.ahead ? 'ahead of' : 'behind';
+        
+        html += `<div class="ghost-comparison">
+            <div class="ghost-status" style="color: ${color}">
+                ${icon} You're ${text} your best run by ${comparison.percent}%
+            </div>
+            <div class="ghost-details">
+                <div class="ghost-detail-row">
+                    <span>Current Chaos:</span>
+                    <span>${formatNumber(gameState.chaosPoints)}</span>
+                </div>
+                <div class="ghost-detail-row">
+                    <span>Ghost Chaos (at this time):</span>
+                    <span>${formatNumber(comparison.ghostChaos)}</span>
+                </div>
+                <div class="ghost-detail-row">
+                    <span>Difference:</span>
+                    <span style="color: ${color}">${comparison.ahead ? '+' : '-'}${formatNumber(comparison.amount)}</span>
+                </div>
+            </div>
+        </div>`;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
 }
 
 // Initialize game when DOM is ready
@@ -2968,6 +5440,9 @@ function initializeGame() {
             const timeSinceLastSave = Date.now() - gameState.lastSaveTime;
             gameState.lastTick = Date.now();
 
+            // Recalculate synergies after loading
+            calculateSynergyBonuses();
+
             // Recalculate chaos per second before offline progress
             gameState.chaosPerSecond = calculateChaosPerSecond();
             calculateOfflineProgress(timeSinceLastSave);
@@ -2988,6 +5463,48 @@ function initializeGame() {
     if (!gameState.currentScenario) {
         selectScenario();
     }
+
+    // Community tab setup
+    document.querySelectorAll('.community-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const panel = btn.dataset.panel;
+            document.querySelectorAll('.community-tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.community-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(`${panel}-panel`).classList.add('active');
+            
+            // Render content when switching panels
+            if (panel === 'stats') renderStatsDashboard();
+            else if (panel === 'leaderboards') renderLeaderboards();
+            else if (panel === 'weekly') renderWeeklyChallenge();
+            else if (panel === 'ghost') renderGhostRun();
+            else if (panel === 'share') {
+                document.getElementById('sharePreviewText').textContent = generateShareText();
+            }
+        });
+    });
+    
+    // Share buttons
+    document.getElementById('copyShareBtn')?.addEventListener('click', copyShareTextToClipboard);
+    document.getElementById('downloadImageBtn')?.addEventListener('click', downloadShareImage);
+    
+    // Initial render of community features
+    renderStatsDashboard();
+    renderLeaderboards();
+    renderWeeklyChallenge();
+    renderGhostRun();
+    
+    // Update community panels every 5 seconds
+    setInterval(() => {
+        const activePanel = document.querySelector('.community-panel.active');
+        if (activePanel) {
+            const panelId = activePanel.id.replace('-panel', '');
+            if (panelId === 'stats') renderStatsDashboard();
+            else if (panelId === 'leaderboards') renderLeaderboards();
+            else if (panelId === 'weekly') renderWeeklyChallenge();
+            else if (panelId === 'ghost') renderGhostRun();
+        }
+    }, 5000);
 
     // Add mobile collapse functionality
     if (window.innerWidth <= 1024) {

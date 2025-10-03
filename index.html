@@ -94,6 +94,7 @@
                     <button class="tab-button" data-tab="stocks">DOOM STOCKS</button>
                     <button class="tab-button" data-tab="mutations">MUTATIONS</button>
                     <button class="tab-button" data-tab="achievements">ACHIEVEMENTS</button>
+                    <button class="tab-button" data-tab="community">COMMUNITY</button>
                 </div>
 
                 <!-- Departments Tab -->
@@ -135,16 +136,107 @@
                     <p class="achievements-info">Unlock achievements for bonus rewards</p>
                     <div class="achievements-list" id="achievementsList"></div>
                 </div>
+
+                <!-- Community Tab -->
+                <div class="tab-content" id="community">
+                    <h2>🌐 COMMUNITY FEATURES</h2>
+                    <p class="community-info">Compete, share, and compare your apocalyptic achievements!</p>
+                    
+                    <div class="community-tabs">
+                        <button class="community-tab-btn active" data-panel="stats">📊 Statistics</button>
+                        <button class="community-tab-btn" data-panel="leaderboards">🏆 Leaderboards</button>
+                        <button class="community-tab-btn" data-panel="weekly">🗓️ Weekly Challenge</button>
+                        <button class="community-tab-btn" data-panel="ghost">👻 Ghost Run</button>
+                        <button class="community-tab-btn" data-panel="share">📤 Share</button>
+                    </div>
+                    
+                    <div class="community-panels">
+                        <div class="community-panel active" id="stats-panel">
+                            <div id="statsContent"></div>
+                        </div>
+                        
+                        <div class="community-panel" id="leaderboards-panel">
+                            <div id="leaderboardContent"></div>
+                        </div>
+                        
+                        <div class="community-panel" id="weekly-panel">
+                            <div id="weeklyContent"></div>
+                        </div>
+                        
+                        <div class="community-panel" id="ghost-panel">
+                            <div id="ghostContent"></div>
+                        </div>
+                        
+                        <div class="community-panel" id="share-panel">
+                            <div class="share-section">
+                                <h3>📤 Share Your Stats</h3>
+                                <p>Show off your apocalyptic achievements!</p>
+                                <div class="share-buttons">
+                                    <button class="share-btn" id="copyShareBtn">
+                                        📋 Copy Share Text
+                                    </button>
+                                    <button class="share-btn" id="downloadImageBtn">
+                                        📸 Download Share Image
+                                    </button>
+                                </div>
+                                <div class="share-preview" id="sharePreview">
+                                    <h4>Preview:</h4>
+                                    <pre id="sharePreviewText"></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Right Panel: Event Log & Stats -->
             <div class="right-panel">
+                <div class="project-section" id="projectContainer" style="display: none;">
+                    <h3>🔧 ACTIVE PROJECT</h3>
+                    <div class="project-card">
+                        <div class="project-name" id="projectName">Project Name</div>
+                        <div class="project-desc" id="projectDesc">Project description</div>
+                        <div class="project-progress-container">
+                            <div class="project-progress-bar" id="projectProgressBar"></div>
+                            <span class="project-progress-text" id="projectProgressText">0%</span>
+                        </div>
+                        <div class="project-hint">💡 Shift+Click to accelerate construction!</div>
+                    </div>
+                </div>
+
+                <div class="focus-section" id="focusContainer">
+                    <h3>🎯 DEPARTMENT FOCUS</h3>
+                    <p class="focus-info">Focus grants 3x production to one department, 0.5x to others</p>
+                    <div class="focus-status" id="focusStatus">No focus active</div>
+                    <div class="focus-cooldown" id="focusCooldown" style="display: none;">⏱️ Cooldown: 60s</div>
+                </div>
+
+                <div class="challenge-section" id="challengeContainer" style="display: none;">
+                    <h3>🎯 ACTIVE CHALLENGE</h3>
+                    <div class="challenge-card">
+                        <div class="challenge-name" id="challengeName">Challenge Name</div>
+                        <div class="challenge-desc" id="challengeDesc">Challenge description</div>
+                        <div class="challenge-progress-container">
+                            <div class="challenge-progress-bar" id="challengeProgressBar"></div>
+                            <span class="challenge-progress-text" id="challengeProgressText">0 / 100</span>
+                        </div>
+                        <div class="challenge-timer" id="challengeTimer">⏱️ 60s</div>
+                    </div>
+                </div>
+
                 <div class="scenario-section">
                     <h3>🎲 CURRENT SCENARIO</h3>
                     <div class="scenario-card" id="scenarioCard">
                         <div class="scenario-name" id="scenarioName">Standard Apocalypse</div>
                         <div class="scenario-desc" id="scenarioDesc">No special modifiers this run</div>
                         <div class="scenario-effects" id="scenarioEffects"></div>
+                    </div>
+                </div>
+
+                <div class="synergy-section">
+                    <h3>✨ ACTIVE SYNERGIES</h3>
+                    <div class="synergies-list" id="synergiesList">
+                        <div class="synergy-empty">No active synergies. Specialize 3+ departments with the same path!</div>
                     </div>
                 </div>
 
