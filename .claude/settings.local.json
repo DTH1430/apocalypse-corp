@@ -7,7 +7,10 @@
       "Bash(git config:*)",
       "Bash(gh repo create:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Major v2.0 update - Enhanced gameplay, smooth audio, and fixes\n\nCore Enhancements:\n- Smooth professional audio system with ADSR envelopes and filtering\n- Particle effects (8 particles per click with explosion animation)\n- Combo system (2s window, up to 5x multiplier with visual feedback)\n- Critical hit system (10% chance for 5x, 20% for 10x damage)\n- Auto-clicker system (3 levels: 1/2/5 clicks per second)\n- Achievement system (13 achievements with permanent bonuses)\n- Offline progress calculation (4 hours max, 50% efficiency)\n- Import/export save functionality\n\nAudio System:\n- Click: Soft sine wave (600→400Hz, 80ms, 0.08 volume)\n- Crit: Harmonic major third (880+1108Hz, 300ms, 0.15 volume)\n- Combo: Gentle sweep (1000→1200Hz, 100ms, 0.06 volume)\n- Achievement: C major arpeggio (C-E-G, 600ms, 0.12 volume)\n- Purchase: Rising fifth (440→660Hz, 150ms, 0.10 volume)\n- Apocalypse: Epic bass rumble (55→110Hz dual layer, 1500ms, 0.20 volume)\n- All sounds feature lowpass filtering and exponential envelopes\n\nUI Improvements:\n- Fixed text overflow in resource boxes and tooltips\n- Responsive design with 5 breakpoints (1400px to mobile)\n- Enhanced button animations with shimmer effects\n- Floating damage text with combo/crit indicators\n- Improved tooltip positioning and visibility\n\nBug Fixes:\n- Fixed department production reset logic\n- Added save versioning (v2) with migration\n- Fixed stock price edge cases (bounded 10%-300%)\n- Prevented division by zero in various calculations\n\nTechnical Details:\n- +817 lines in game.js (audio system, particle effects, combos)\n- +459 lines in style.css (animations, responsive fixes)\n- +12 lines in index.html (combo indicator, sound toggle)\n- Comprehensive documentation in CHANGELOG.md and SMOOTH_AUDIO_SYSTEM.md\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(start index.html)",
+      "Bash(powershell:*)",
+      "Bash(del \"c:\\test\\add-bom.ps1\")"
     ],
     "deny": [],
     "ask": []

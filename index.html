@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -38,6 +38,7 @@
                     <button class="doom-button" id="doomButton">
                         ADVANCE DOOMSDAY
                         <span class="doom-value">+<span id="doomPerClick">1</span> Chaos Point per click</span>
+                        <span class="keyboard-hint">⌨️ Press SPACE to click</span>
                         <span class="combo-indicator" id="comboIndicator"></span>
                     </button>
 
@@ -98,6 +99,13 @@
                 <!-- Departments Tab -->
                 <div class="tab-content active" id="departments">
                     <h2>🏭 DISASTER DEPARTMENTS</h2>
+                    <div class="buy-mode-selector">
+                        <span>Buy Amount:</span>
+                        <button class="buy-mode-btn active" data-mode="1">1</button>
+                        <button class="buy-mode-btn" data-mode="10">10</button>
+                        <button class="buy-mode-btn" data-mode="100">100</button>
+                        <button class="buy-mode-btn" data-mode="max">Max</button>
+                    </div>
                     <div class="departments-list" id="departmentsList"></div>
                 </div>
 

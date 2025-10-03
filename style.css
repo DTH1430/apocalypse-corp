@@ -1,4 +1,4 @@
-* {
+﻿* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -183,7 +183,6 @@ header h1 {
     border: 3px solid #ff6666;
     border-radius: 10px;
     cursor: pointer;
-    transition: all 0.2s;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     position: relative;
     overflow: hidden;
@@ -212,14 +211,16 @@ header h1 {
 }
 
 .doom-button:hover {
-    transform: scale(1.05);
     box-shadow: 0 5px 20px rgba(255, 68, 68, 0.6), 0 0 30px rgba(255, 68, 68, 0.4);
     border-color: #ff8888;
 }
 
 .doom-button:active {
-    transform: scale(0.98);
     box-shadow: 0 0 40px rgba(255, 68, 68, 1);
+}
+
+.doom-button.clicking {
+    background: linear-gradient(135deg, #ff6666 0%, #ee0000 100%);
 }
 
 .doom-value {
@@ -227,6 +228,14 @@ header h1 {
     font-size: 0.8em;
     margin-top: 5px;
     opacity: 0.9;
+}
+
+.keyboard-hint {
+    display: block;
+    font-size: 0.7em;
+    margin-top: 3px;
+    opacity: 0.6;
+    color: #ffd700;
 }
 
 .combo-indicator {
@@ -343,6 +352,31 @@ header h1 {
     min-width: 60px;
 }
 
+/* Number color coding by magnitude */
+.color-k {
+    color: #4fc3f7; /* Light blue - default */
+}
+
+.color-m {
+    color: #66bb6a; /* Green - Thousands */
+}
+
+.color-b {
+    color: #ffd54f; /* Yellow - Millions */
+}
+
+.color-t {
+    color: #ff8a65; /* Orange - Billions */
+}
+
+.color-qa {
+    color: #e57373; /* Red - Trillions */
+}
+
+.color-qi {
+    color: #ba68c8; /* Purple - Quadrillions+ */
+}
+
 .apocalypse-section {
     background: rgba(139, 0, 0, 0.2);
     border-color: #ff4444;
@@ -435,8 +469,44 @@ header h1 {
 }
 
 .tab-content h2 {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     color: #ff6b6b;
+}
+
+.buy-mode-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(255, 107, 107, 0.1);
+    border-radius: 5px;
+}
+
+.buy-mode-selector span {
+    font-size: 0.9em;
+    color: #aaa;
+}
+
+.buy-mode-btn {
+    padding: 5px 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    color: #fff;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.buy-mode-btn:hover {
+    background: rgba(255, 107, 107, 0.2);
+    border-color: #ff6b6b;
+}
+
+.buy-mode-btn.active {
+    background: #ff6b6b;
+    border-color: #ff6b6b;
+    font-weight: bold;
 }
 
 .departments-list,
@@ -769,6 +839,63 @@ header h1 {
     }
 }
 
+/* Click Ripple Effect */
+.click-ripple {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+    animation: rippleExpand 0.5s ease-out forwards;
+    transform: translate(-50%, -50%);
+    z-index: 998;
+}
+
+@keyframes rippleExpand {
+    0% {
+        width: 20px;
+        height: 20px;
+        opacity: 1;
+        border-width: 2px;
+    }
+    100% {
+        width: 100px;
+        height: 100px;
+        opacity: 0;
+        border-width: 0px;
+    }
+}
+
+/* Milestone Celebration Effects */
+.particle.confetti {
+    background: radial-gradient(circle, #ffd700, #ff8c00);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 1);
+    animation: particleExplode 1s ease-out forwards;
+}
+
+.screen-flash {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 215, 0, 0.4);
+    pointer-events: none;
+    z-index: 9999;
+    animation: flashFade 0.3s ease-out forwards;
+}
+
+@keyframes flashFade {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
 /* Combo Display */
 .combo-display {
     position: fixed;
@@ -1007,57 +1134,13 @@ header h1 {
 }
 
 /* Achievement Styles */
-.achievement-item {
-    background: rgba(0, 0, 0, 0.4);
-    border: 2px solid #4a4a6a;
-    border-radius: 8px;
-    padding: 15px;
-    transition: all 0.2s;
-}
-
-.achievement-item.unlocked {
-    border-color: #ffd700;
-    background: rgba(255, 215, 0, 0.1);
-}
-
-.achievement-item.locked {
-    opacity: 0.6;
-}
-
-.achievement-item:hover {
-    transform: translateX(3px);
-}
-
-.achievement-status {
-    display: inline-block;
-    padding: 3px 8px;
-    border-radius: 3px;
-    font-size: 0.8em;
-    font-weight: bold;
-}
-
-.achievement-status.unlocked {
-    background: #4caf50;
-    color: white;
-}
-
-.achievement-status.locked {
-    background: #666;
-    color: #aaa;
-}
-
-.achievement-reward {
-    color: #4fc3f7;
-    font-style: italic;
-    font-size: 0.9em;
-}
-
 .achievements-header {
-    margin-bottom: 20px;
-    padding: 15px;
-    background: rgba(255, 215, 0, 0.1);
+    margin-bottom: 25px;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(201, 75, 75, 0.15));
     border: 2px solid #ffd700;
-    border-radius: 8px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
 }
 
 .achievements-progress {
@@ -1068,16 +1151,262 @@ header h1 {
     display: block;
     font-weight: bold;
     color: #ffd700;
-    margin-bottom: 10px;
-    font-size: 1.2em;
+    margin-bottom: 12px;
+    font-size: 1.3em;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
 .achievements-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    max-height: 600px;
+    gap: 25px;
+    max-height: 650px;
     overflow-y: auto;
+    padding-right: 10px;
+}
+
+/* Achievement Categories */
+.achievement-category {
+    margin-bottom: 15px;
+}
+
+.achievement-category-header {
+    color: #ff6b6b;
+    font-size: 1.3em;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #4a4a6a;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Achievement Grid Layout */
+.achievement-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+/* Achievement Cards */
+.achievement-card {
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid #4a4a6a;
+    border-radius: 10px;
+    padding: 15px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 200px;
+}
+
+.achievement-card.locked {
+    opacity: 0.6;
+    filter: grayscale(80%);
+}
+
+.achievement-card.unlocked {
+    border-color: #ffd700;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(0, 0, 0, 0.5));
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+    filter: grayscale(0%);
+}
+
+.achievement-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+}
+
+.achievement-card.unlocked:hover {
+    box-shadow: 0 5px 25px rgba(255, 215, 0, 0.5);
+}
+
+.achievement-card-icon {
+    font-size: 3em;
+    text-align: center;
+    margin-bottom: 5px;
+    filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
+}
+
+.achievement-card-name {
+    font-weight: bold;
+    font-size: 1.1em;
+    color: #4fc3f7;
+    text-align: center;
+    min-height: 2.2em;
+}
+
+.achievement-card.unlocked .achievement-card-name {
+    color: #ffd700;
+}
+
+.achievement-card-desc {
+    font-size: 0.85em;
+    opacity: 0.9;
+    text-align: center;
+    color: #ccc;
+    margin-bottom: 5px;
+}
+
+.achievement-card-reward {
+    font-size: 0.8em;
+    color: #66bb6a;
+    font-style: italic;
+    text-align: center;
+    padding: 5px;
+    background: rgba(102, 187, 106, 0.1);
+    border-radius: 5px;
+    margin-top: auto;
+}
+
+.achievement-card-progress {
+    margin-top: 8px;
+}
+
+.achievement-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.achievement-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4fc3f7, #66bb6a);
+    transition: width 0.3s ease;
+    box-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+}
+
+.achievement-progress-text {
+    font-size: 0.75em;
+    text-align: center;
+    color: #aaa;
+}
+
+.achievement-card-status {
+    font-size: 0.7em;
+    font-weight: bold;
+    text-align: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-top: 5px;
+}
+
+.achievement-card-status.unlocked {
+    background: #4caf50;
+    color: white;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+}
+
+.achievement-card-status.locked {
+    background: rgba(102, 102, 102, 0.5);
+    color: #999;
+}
+
+/* Achievement Notification */
+.achievement-notification {
+    position: fixed;
+    top: -300px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #ffd700, #ff8c00);
+    border: 3px solid #fff;
+    border-radius: 15px;
+    padding: 20px 30px;
+    min-width: 400px;
+    max-width: 500px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.6);
+    z-index: 30000;
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.achievement-notification.show {
+    top: 20px;
+    animation: achievementPulse 0.5s ease-in-out 0.5s 2;
+}
+
+@keyframes achievementPulse {
+    0%, 100% {
+        transform: translateX(-50%) scale(1);
+    }
+    50% {
+        transform: translateX(-50%) scale(1.05);
+    }
+}
+
+.achievement-notification-icon {
+    font-size: 4em;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
+    animation: iconSpin 0.6s ease-in-out;
+}
+
+@keyframes iconSpin {
+    0% {
+        transform: rotate(0deg) scale(0);
+    }
+    50% {
+        transform: rotate(180deg) scale(1.2);
+    }
+    100% {
+        transform: rotate(360deg) scale(1);
+    }
+}
+
+.achievement-notification-content {
+    flex: 1;
+}
+
+.achievement-notification-title {
+    font-weight: bold;
+    font-size: 0.9em;
+    color: #8b4513;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+}
+
+.achievement-notification-name {
+    font-weight: bold;
+    font-size: 1.4em;
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    margin-bottom: 5px;
+}
+
+.achievement-notification-desc {
+    font-size: 0.95em;
+    color: rgba(255, 255, 255, 0.95);
+    font-style: italic;
+}
+
+/* Achievement Particles */
+.achievement-particle {
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: achievementParticleExplode 1s ease-out forwards;
+    z-index: 29999;
+    box-shadow: 0 0 10px currentColor;
+}
+
+@keyframes achievementParticleExplode {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(var(--tx), var(--ty)) scale(0);
+    }
 }
 
 /* Footer */
@@ -1166,6 +1495,15 @@ footer {
         font-size: 2.5em;
     }
 
+    .achievement-grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    }
+
+    .achievement-notification {
+        min-width: 90%;
+        max-width: 90%;
+    }
+
     .resource-item .tooltip {
         max-width: calc(100vw - 40px);
         left: 50%;
@@ -1248,6 +1586,27 @@ footer {
     .doom-button {
         font-size: 1em;
         padding: 15px;
+    }
+
+    .achievement-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .achievement-card {
+        min-height: 180px;
+    }
+
+    .achievement-notification {
+        min-width: 95%;
+        padding: 15px 20px;
+    }
+
+    .achievement-notification-icon {
+        font-size: 3em;
+    }
+
+    .achievement-notification-name {
+        font-size: 1.2em;
     }
 
     .resource-item {
@@ -1372,5 +1731,486 @@ footer {
 
     .doom-value {
         font-size: 0.75em;
+    }
+}
+
+/* ========== TUTORIAL SYSTEM ========== */
+
+/* Tutorial Modal */
+.tutorial-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.tutorial-modal.show {
+    background: rgba(0, 0, 0, 0.9);
+    opacity: 1;
+}
+
+.tutorial-content {
+    background: linear-gradient(135deg, #2a2a4a 0%, #1a1a3e 100%);
+    border: 3px solid #ffd700;
+    border-radius: 15px;
+    padding: 40px;
+    max-width: 600px;
+    width: 90%;
+    box-shadow: 0 0 50px rgba(255, 215, 0, 0.5), inset 0 0 30px rgba(255, 215, 0, 0.1);
+    transform: scale(0.8);
+    transition: transform 0.3s ease;
+}
+
+.tutorial-modal.show .tutorial-content {
+    transform: scale(1);
+}
+
+.tutorial-content h2 {
+    color: #ffd700;
+    font-size: 2em;
+    text-align: center;
+    margin-bottom: 20px;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+}
+
+.tutorial-content h3 {
+    color: #ff6b6b;
+    font-size: 1.3em;
+    margin: 20px 0 10px;
+}
+
+.tutorial-text {
+    color: #eee;
+    line-height: 1.8;
+    margin-bottom: 30px;
+}
+
+.tutorial-text p {
+    margin-bottom: 15px;
+}
+
+.tutorial-text ul {
+    margin-left: 20px;
+    margin-bottom: 15px;
+}
+
+.tutorial-text li {
+    margin-bottom: 8px;
+}
+
+.tutorial-emphasis {
+    color: #ffd700 !important;
+    font-size: 1.2em !important;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 20px !important;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+}
+
+.tutorial-button {
+    width: 100%;
+    padding: 20px;
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+    color: white;
+    border: 3px solid #ffd700;
+    border-radius: 10px;
+    font-size: 1.3em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 15px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    animation: tutorialButtonPulse 1.5s infinite;
+}
+
+.tutorial-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(255, 107, 107, 0.8);
+}
+
+@keyframes tutorialButtonPulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
+    50% { box-shadow: 0 0 40px rgba(255, 215, 0, 1), 0 0 60px rgba(255, 107, 107, 0.5); }
+}
+
+.tutorial-cancel-button {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    color: #aaa;
+    border: 2px solid #555;
+    border-radius: 8px;
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tutorial-cancel-button:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: #888;
+    color: #ddd;
+}
+
+/* Tutorial Apocalypse Button */
+.tutorial-apocalypse-button {
+    animation: tutorialApocalypsePulse 1s infinite !important;
+    background: linear-gradient(135deg, #ff6b6b 0%, #ffd700 100%) !important;
+    border: 3px solid #ffd700 !important;
+    font-size: 1.2em !important;
+    font-weight: bold !important;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5) !important;
+}
+
+@keyframes tutorialApocalypsePulse {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 107, 107, 0.5);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(255, 215, 0, 1), 0 0 60px rgba(255, 107, 107, 0.8);
+        transform: scale(1.02);
+    }
+}
+
+/* Apocalypse Confirmation Modal */
+.apocalypse-confirmation-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.apocalypse-confirmation-modal.show {
+    background: rgba(0, 0, 0, 0.9);
+    opacity: 1;
+}
+
+.apocalypse-confirmation-content {
+    background: linear-gradient(135deg, #2a1a1a 0%, #1a0a0a 100%);
+    border: 3px solid #ff6b6b;
+    border-radius: 15px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 0 50px rgba(255, 107, 107, 0.5), inset 0 0 30px rgba(255, 107, 107, 0.1);
+    transform: scale(0.8);
+    transition: transform 0.3s ease;
+}
+
+.apocalypse-confirmation-modal.show .apocalypse-confirmation-content {
+    transform: scale(1);
+}
+
+.apocalypse-confirmation-content h2 {
+    color: #ff6b6b;
+    text-align: center;
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+}
+
+.apocalypse-confirmation-text {
+    color: #ddd;
+    line-height: 1.6;
+}
+
+.apocalypse-confirmation-text > p {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.apocalypse-confirmation-stats {
+    background: rgba(255, 107, 107, 0.1);
+    border-radius: 8px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.confirmation-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.confirmation-stat:last-child {
+    border-bottom: none;
+}
+
+.confirmation-stat.highlight {
+    background: rgba(255, 107, 107, 0.2);
+    margin: 0 -10px;
+    padding: 12px 10px;
+    border-radius: 5px;
+}
+
+.confirmation-label {
+    color: #aaa;
+    font-size: 0.9em;
+}
+
+.confirmation-value {
+    color: #fff;
+    font-weight: bold;
+}
+
+.confirmation-stat.highlight .confirmation-value {
+    color: #ffd700;
+    font-size: 1.2em;
+}
+
+.confirmation-warning {
+    text-align: center;
+    color: #ff9999;
+    font-size: 0.9em;
+    margin-top: 15px;
+}
+
+.apocalypse-confirmation-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.apocalypse-confirm-btn {
+    flex: 1;
+    padding: 15px;
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee0000 100%);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.apocalypse-confirm-btn:hover {
+    background: linear-gradient(135deg, #ff8888 0%, #ff3333 100%);
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(255, 107, 107, 0.6);
+}
+
+.apocalypse-cancel-btn {
+    flex: 1;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: #aaa;
+    border-radius: 8px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.apocalypse-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #fff;
+    color: #fff;
+}
+
+/* Tutorial Success Overlay */
+.tutorial-success-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: all 0.4s ease;
+}
+
+.tutorial-success-overlay.show {
+    background: linear-gradient(135deg, rgba(26, 26, 46, 0.98), rgba(22, 33, 62, 0.98));
+    opacity: 1;
+}
+
+.tutorial-success-content {
+    background: linear-gradient(135deg, #2a2a4a 0%, #1a1a3e 100%);
+    border: 4px solid #ffd700;
+    border-radius: 20px;
+    padding: 50px;
+    max-width: 700px;
+    width: 90%;
+    box-shadow: 0 0 80px rgba(255, 215, 0, 0.8), inset 0 0 50px rgba(255, 215, 0, 0.15);
+    transform: scale(0.7) rotateX(20deg);
+    transition: transform 0.4s ease;
+}
+
+.tutorial-success-overlay.show .tutorial-success-content {
+    transform: scale(1) rotateX(0deg);
+}
+
+.tutorial-success-content h1 {
+    color: #ffd700;
+    font-size: 2.5em;
+    text-align: center;
+    margin-bottom: 30px;
+    text-shadow: 0 0 30px rgba(255, 215, 0, 1);
+    animation: successTitlePulse 2s infinite;
+}
+
+@keyframes successTitlePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.tutorial-success-stats {
+    display: flex;
+    justify-content: space-around;
+    margin: 30px 0;
+    gap: 20px;
+}
+
+.success-stat {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid #4a4a6a;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+}
+
+.success-stat.highlight {
+    border-color: #ffd700;
+    background: rgba(255, 215, 0, 0.1);
+}
+
+.success-stat-label {
+    color: #aaa;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+}
+
+.success-stat-value {
+    color: #fff;
+    font-size: 2em;
+    font-weight: bold;
+}
+
+.success-stat.highlight .success-stat-value {
+    color: #ffd700;
+    font-size: 2.5em;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+}
+
+.tutorial-success-message {
+    background: rgba(255, 215, 0, 0.1);
+    border: 2px solid #ffd700;
+    border-radius: 10px;
+    padding: 25px;
+    margin: 30px 0;
+}
+
+.tutorial-success-message h2 {
+    color: #ffd700;
+    font-size: 1.8em;
+    text-align: center;
+    margin-bottom: 15px;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+}
+
+.tutorial-success-message p {
+    color: #eee;
+    line-height: 1.8;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.tutorial-complete-badge {
+    background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+    color: white;
+    font-size: 1.2em;
+    font-weight: bold;
+    padding: 15px 30px;
+    border-radius: 50px;
+    display: inline-block;
+    margin: 20px auto;
+    text-align: center;
+    width: fit-content;
+    display: block;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.6);
+}
+
+.tutorial-continue-button {
+    width: 100%;
+    padding: 20px;
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+    color: white;
+    border: 3px solid #ffd700;
+    border-radius: 10px;
+    font-size: 1.3em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.tutorial-continue-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
+}
+
+/* Responsive Tutorial Styles */
+@media (max-width: 768px) {
+    .tutorial-content {
+        padding: 25px;
+        max-width: 95%;
+    }
+
+    .tutorial-content h2 {
+        font-size: 1.5em;
+    }
+
+    .tutorial-content h3 {
+        font-size: 1.1em;
+    }
+
+    .tutorial-button {
+        font-size: 1.1em;
+        padding: 15px;
+    }
+
+    .tutorial-success-content {
+        padding: 30px;
+        max-width: 95%;
+    }
+
+    .tutorial-success-content h1 {
+        font-size: 1.8em;
+    }
+
+    .tutorial-success-stats {
+        flex-direction: column;
+    }
+
+    .success-stat-value {
+        font-size: 1.5em;
+    }
+
+    .success-stat.highlight .success-stat-value {
+        font-size: 2em;
     }
 }

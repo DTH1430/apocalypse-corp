@@ -1,4 +1,4 @@
-// Game State
+﻿// Game State
 const gameState = {
     saveVersion: 2, // Version for save migration
     doomEnergy: 0,
@@ -31,9 +31,21 @@ const gameState = {
     lastClickTime: 0,
     comboTimeWindow: 2000, // 2 seconds to maintain combo
 
+    // Milestone tracking
+    milestonesPassed: {
+        chaos1k: false,
+        chaos10k: false,
+        chaos100k: false
+    },
+
+    // Tutorial system
+    tutorialCompleted: false,
+    tutorialHintShown: false,
+
     // Critical hit system
     critChance: 0,
     critMultiplier: 0,
+    totalCrits: 0,
 
     // Auto-clicker
     autoClickerLevel: 0,
@@ -42,7 +54,22 @@ const gameState = {
 
     // Daily rewards
     lastDailyReward: 0,
-    dailyStreak: 0
+    dailyStreak: 0,
+
+    // Bulk buy mode
+    buyMode: 1, // 1, 10, 100, or 'max'
+
+    // Upgrade multipliers (prevents global state mutation)
+    upgradeMultipliers: {
+        intern: 1,
+        meteor: 1,
+        biohazard: 1,
+        nuclear: 1,
+        blackhole: 1,
+        reality: 1,
+        dimension: 1,
+        paradox: 1
+    }
 };
 
 // Game Data Definitions
@@ -215,7 +242,7 @@ const UPGRADES = {
         name: '📚 Mandatory Overtime',
         desc: 'Interns produce 2x chaos',
         cost: 500,
-        effect: () => DEPARTMENTS.intern.baseProduction *= 2,
+        effect: () => gameState.upgradeMultipliers.intern *= 2,
         requirement: () => (gameState.departments.intern?.count || 0) >= 5
     },
     meteorBoost: {
@@ -223,7 +250,7 @@ const UPGRADES = {
         name: '🎯 Precision Targeting',
         desc: 'Meteor division produces 2x chaos',
         cost: 5000,
-        effect: () => DEPARTMENTS.meteor.baseProduction *= 2,
+        effect: () => gameState.upgradeMultipliers.meteor *= 2,
         requirement: () => (gameState.departments.meteor?.count || 0) >= 5
     },
     biohazardBoost: {
@@ -231,7 +258,7 @@ const UPGRADES = {
         name: '🧬 Gene Splicing',
         desc: 'Biohazard R&D produces 2x chaos',
         cost: 50000,
-        effect: () => DEPARTMENTS.biohazard.baseProduction *= 2,
+        effect: () => gameState.upgradeMultipliers.biohazard *= 2,
         requirement: () => (gameState.departments.biohazard?.count || 0) >= 5
     },
     globalEfficiency: {
@@ -240,8 +267,8 @@ const UPGRADES = {
         desc: 'All departments produce 50% more chaos',
         cost: 100000,
         effect: () => {
-            Object.values(DEPARTMENTS).forEach(dept => {
-                dept.baseProduction *= 1.5;
+            Object.keys(gameState.upgradeMultipliers).forEach(deptId => {
+                gameState.upgradeMultipliers[deptId] *= 1.5;
             });
         },
         requirement: () => gameState.totalApocalypses >= 1
@@ -252,8 +279,8 @@ const UPGRADES = {
         desc: 'All production +100%',
         cost: 500000,
         effect: () => {
-            Object.values(DEPARTMENTS).forEach(dept => {
-                dept.baseProduction *= 2;
+            Object.keys(gameState.upgradeMultipliers).forEach(deptId => {
+                gameState.upgradeMultipliers[deptId] *= 2;
             });
         },
         requirement: () => gameState.totalApocalypses >= 2
@@ -374,96 +401,337 @@ const STOCKS = {
 };
 
 const ACHIEVEMENTS = {
+    // CLICKING CATEGORY
     firstClick: {
         id: 'firstClick',
         name: '👆 First Steps',
         desc: 'Click the doom button for the first time',
-        requirement: () => gameState.totalClicks >= 1,
-        reward: 'You know how to click!'
+        category: 'clicking',
+        icon: '👆',
+        requirement: {
+            type: 'clicks',
+            value: 1,
+            check: () => gameState.totalClicks >= 1
+        },
+        reward: {
+            type: 'none',
+            value: 0,
+            description: 'You know how to click!'
+        }
     },
     click100: {
         id: 'click100',
         name: '💪 Click Master',
         desc: 'Click the doom button 100 times',
-        requirement: () => gameState.totalClicks >= 100,
-        reward: '+10% click power permanently'
+        category: 'clicking',
+        icon: '💪',
+        requirement: {
+            type: 'clicks',
+            value: 100,
+            check: () => gameState.totalClicks >= 100
+        },
+        reward: {
+            type: 'clickMultiplier',
+            value: 1.10,
+            description: '+10% click power permanently'
+        }
     },
     click1000: {
         id: 'click1000',
         name: '🔥 Click Legend',
-        desc: 'Click the doom button 1000 times',
-        requirement: () => gameState.totalClicks >= 1000,
-        reward: '+25% click power permanently'
+        desc: 'Click the doom button 1,000 times',
+        category: 'clicking',
+        icon: '🔥',
+        requirement: {
+            type: 'clicks',
+            value: 1000,
+            check: () => gameState.totalClicks >= 1000
+        },
+        reward: {
+            type: 'clickMultiplier',
+            value: 1.25,
+            description: '+25% click power permanently'
+        }
     },
+    click10000: {
+        id: 'click10000',
+        name: '⚡ Hyperclicker',
+        desc: 'Click the doom button 10,000 times',
+        category: 'clicking',
+        icon: '⚡',
+        requirement: {
+            type: 'clicks',
+            value: 10000,
+            check: () => gameState.totalClicks >= 10000
+        },
+        reward: {
+            type: 'clickMultiplier',
+            value: 1.50,
+            description: '+50% click power permanently'
+        }
+    },
+
+    // DEPARTMENT CATEGORY
     firstDepartment: {
         id: 'firstDepartment',
         name: '📋 First Hire',
         desc: 'Hire your first department',
-        requirement: () => Object.values(gameState.departments).some(d => d.count > 0),
-        reward: 'Welcome to management!'
+        category: 'departments',
+        icon: '📋',
+        requirement: {
+            type: 'departments',
+            value: 1,
+            check: () => Object.values(gameState.departments).some(d => d.count > 0)
+        },
+        reward: {
+            type: 'chaosBonus',
+            value: 100,
+            description: 'Gain 100 chaos points'
+        }
     },
     allDepartments: {
         id: 'allDepartments',
         name: '🏢 Full Roster',
         desc: 'Hire at least one of every department',
-        requirement: () => Object.keys(DEPARTMENTS).every(id => gameState.departments[id]?.count > 0),
-        reward: '+10% production from all departments'
+        category: 'departments',
+        icon: '🏢',
+        requirement: {
+            type: 'departments',
+            value: 8,
+            check: () => Object.keys(DEPARTMENTS).every(id => gameState.departments[id]?.count > 0)
+        },
+        reward: {
+            type: 'productionMultiplier',
+            value: 1.10,
+            description: '+10% production from all departments'
+        }
     },
+    departments100: {
+        id: 'departments100',
+        name: '🏭 Corporate Empire',
+        desc: 'Own 100 total departments',
+        category: 'departments',
+        icon: '🏭',
+        requirement: {
+            type: 'departments',
+            value: 100,
+            check: () => Object.values(gameState.departments).reduce((sum, d) => sum + d.count, 0) >= 100
+        },
+        reward: {
+            type: 'productionMultiplier',
+            value: 1.15,
+            description: '+15% production from all departments'
+        }
+    },
+
+    // APOCALYPSE CATEGORY
     firstApocalypse: {
         id: 'firstApocalypse',
         name: '💀 The End Begins',
         desc: 'Trigger your first apocalypse',
-        requirement: () => gameState.totalApocalypses >= 1,
-        reward: 'The first of many...'
+        category: 'apocalypse',
+        icon: '💀',
+        requirement: {
+            type: 'apocalypses',
+            value: 1,
+            check: () => gameState.totalApocalypses >= 1
+        },
+        reward: {
+            type: 'tokenBonus',
+            value: 1,
+            description: 'Gain 1 Apocalypse Token'
+        }
     },
     apocalypse10: {
         id: 'apocalypse10',
         name: '🌋 Veteran Ender',
         desc: 'Trigger 10 apocalypses',
-        requirement: () => gameState.totalApocalypses >= 10,
-        reward: '+5% apocalypse token gain'
+        category: 'apocalypse',
+        icon: '🌋',
+        requirement: {
+            type: 'apocalypses',
+            value: 10,
+            check: () => gameState.totalApocalypses >= 10
+        },
+        reward: {
+            type: 'tokenMultiplier',
+            value: 1.05,
+            description: '+5% apocalypse token gain'
+        }
     },
     apocalypse50: {
         id: 'apocalypse50',
         name: '☄️ Master of Destruction',
         desc: 'Trigger 50 apocalypses',
-        requirement: () => gameState.totalApocalypses >= 50,
-        reward: '+10% apocalypse token gain'
-    },
-    millionaire: {
-        id: 'millionaire',
-        name: '💰 Chaos Millionaire',
-        desc: 'Accumulate 1 million chaos points in a single run',
-        requirement: () => gameState.chaosPoints >= 1000000,
-        reward: 'Money talks, worlds end'
-    },
-    billionaire: {
-        id: 'billionaire',
-        name: '💎 Chaos Billionaire',
-        desc: 'Accumulate 1 billion chaos points in a single run',
-        requirement: () => gameState.chaosPoints >= 1000000000,
-        reward: '+5% production permanently'
+        category: 'apocalypse',
+        icon: '☄️',
+        requirement: {
+            type: 'apocalypses',
+            value: 50,
+            check: () => gameState.totalApocalypses >= 50
+        },
+        reward: {
+            type: 'tokenMultiplier',
+            value: 1.10,
+            description: '+10% apocalypse token gain'
+        }
     },
     speedrun: {
         id: 'speedrun',
         name: '⚡ Speed Demon',
         desc: 'Trigger an apocalypse in under 5 minutes',
-        requirement: () => false, // Checked manually during apocalypse
-        reward: '+10% starting chaos on future runs'
+        category: 'apocalypse',
+        icon: '⚡',
+        requirement: {
+            type: 'special',
+            value: 300000,
+            check: () => false // Checked manually during apocalypse
+        },
+        reward: {
+            type: 'special',
+            value: 1.10,
+            description: '+10% starting chaos on future runs'
+        }
     },
+
+    // CHAOS CATEGORY
+    millionaire: {
+        id: 'millionaire',
+        name: '💰 Chaos Millionaire',
+        desc: 'Accumulate 1 million chaos points in a single run',
+        category: 'chaos',
+        icon: '💰',
+        requirement: {
+            type: 'chaos',
+            value: 1000000,
+            check: () => gameState.chaosPoints >= 1000000
+        },
+        reward: {
+            type: 'productionMultiplier',
+            value: 1.05,
+            description: '+5% production permanently'
+        }
+    },
+    billionaire: {
+        id: 'billionaire',
+        name: '💎 Chaos Billionaire',
+        desc: 'Accumulate 1 billion chaos points in a single run',
+        category: 'chaos',
+        icon: '💎',
+        requirement: {
+            type: 'chaos',
+            value: 1000000000,
+            check: () => gameState.chaosPoints >= 1000000000
+        },
+        reward: {
+            type: 'productionMultiplier',
+            value: 1.10,
+            description: '+10% production permanently'
+        }
+    },
+    chaosEarned: {
+        id: 'chaosEarned',
+        name: '🌪️ Chaos Generator',
+        desc: 'Earn 10 million total chaos across all runs',
+        category: 'chaos',
+        icon: '🌪️',
+        requirement: {
+            type: 'totalChaos',
+            value: 10000000,
+            check: () => gameState.totalChaosEarned >= 10000000
+        },
+        reward: {
+            type: 'productionMultiplier',
+            value: 1.20,
+            description: '+20% production permanently'
+        }
+    },
+
+    // SPECIAL CATEGORY
     stockMarket: {
         id: 'stockMarket',
         name: '📈 Wolf of Doom Street',
         desc: 'Own 100 total shares across all stocks',
-        requirement: () => Object.values(gameState.stocks).reduce((sum, s) => sum + s.shares, 0) >= 100,
-        reward: '+5% stock dividends'
+        category: 'special',
+        icon: '📈',
+        requirement: {
+            type: 'stocks',
+            value: 100,
+            check: () => Object.values(gameState.stocks).reduce((sum, s) => sum + s.shares, 0) >= 100
+        },
+        reward: {
+            type: 'stockMultiplier',
+            value: 1.05,
+            description: '+5% stock dividends'
+        }
     },
     allMutations: {
         id: 'allMutations',
         name: '☢️ Ultimate Evolution',
         desc: 'Unlock all mutations',
-        requirement: () => Object.keys(MUTATIONS).every(id => gameState.mutations[id]?.unlocked),
-        reward: 'Peak apocalypse performance!'
+        category: 'special',
+        icon: '☢️',
+        requirement: {
+            type: 'mutations',
+            value: 5,
+            check: () => Object.keys(MUTATIONS).every(id => gameState.mutations[id]?.unlocked)
+        },
+        reward: {
+            type: 'productionMultiplier',
+            value: 1.15,
+            description: '+15% production permanently'
+        }
+    },
+    allUpgrades: {
+        id: 'allUpgrades',
+        name: '🔧 Fully Upgraded',
+        desc: 'Purchase all available upgrades in a single run',
+        category: 'special',
+        icon: '🔧',
+        requirement: {
+            type: 'upgrades',
+            value: 10,
+            check: () => Object.keys(UPGRADES).length === Object.keys(gameState.upgrades).length
+        },
+        reward: {
+            type: 'clickMultiplier',
+            value: 1.20,
+            description: '+20% click power permanently'
+        }
+    },
+    comboKing: {
+        id: 'comboKing',
+        name: '🔥 Combo King',
+        desc: 'Achieve a 20x combo multiplier',
+        category: 'special',
+        icon: '🔥',
+        requirement: {
+            type: 'combo',
+            value: 20,
+            check: () => gameState.comboCount >= 20
+        },
+        reward: {
+            type: 'clickMultiplier',
+            value: 1.15,
+            description: '+15% click power permanently'
+        }
+    },
+    criticalMass: {
+        id: 'criticalMass',
+        name: '💥 Critical Mass',
+        desc: 'Land 100 critical hits',
+        category: 'special',
+        icon: '💥',
+        requirement: {
+            type: 'crits',
+            value: 100,
+            check: () => (gameState.totalCrits || 0) >= 100
+        },
+        reward: {
+            type: 'critBonus',
+            value: 1.10,
+            description: '+10% critical hit damage'
+        }
     }
 };
 
@@ -508,28 +776,279 @@ function initializeAchievements() {
     });
 }
 
-// Check and unlock achievements
-function checkAchievements() {
+// Check specific achievement
+function checkAchievement(id) {
+    const achievement = ACHIEVEMENTS[id];
+    if (!achievement) return false;
+
+    const state = gameState.achievements[id];
+    if (!state || state.unlocked) return false;
+
+    if (achievement.requirement.check()) {
+        unlockAchievement(id);
+        return true;
+    }
+    return false;
+}
+
+// Unlock achievement and apply rewards
+function unlockAchievement(id) {
+    const achievement = ACHIEVEMENTS[id];
+    const state = gameState.achievements[id];
+
+    if (!achievement || !state || state.unlocked) return;
+
+    state.unlocked = true;
+    state.unlockedAt = Date.now();
+    state.notified = false;
+    needsRender.achievements = true;
+
+    // Apply reward
+    applyAchievementReward(achievement.reward);
+
+    // Show notification with particle effects
+    setTimeout(() => {
+        if (!state.notified) {
+            showAchievementNotification(achievement);
+            state.notified = true;
+        }
+    }, 100);
+
+    // Play achievement sound
+    if (gameState.soundEnabled) {
+        playSound('achievement');
+    }
+
+    addLog(`🏆 Achievement Unlocked: ${achievement.name}`);
+}
+
+// Apply achievement reward
+function applyAchievementReward(reward) {
+    switch (reward.type) {
+        case 'chaosBonus':
+            gameState.chaosPoints += reward.value;
+            break;
+        case 'tokenBonus':
+            gameState.apocalypseTokens += reward.value;
+            break;
+        case 'none':
+            // No immediate reward
+            break;
+        // Multipliers are applied during calculation via getAchievementMultipliers()
+    }
+}
+
+// Check all achievements
+function checkAllAchievements() {
+    Object.keys(ACHIEVEMENTS).forEach(id => {
+        checkAchievement(id);
+    });
+}
+
+// Get achievement multipliers for different types
+function getAchievementMultipliers() {
+    const multipliers = {
+        click: 1,
+        production: 1,
+        token: 1,
+        stock: 1,
+        crit: 1
+    };
+
     Object.keys(ACHIEVEMENTS).forEach(id => {
         const achievement = ACHIEVEMENTS[id];
         const state = gameState.achievements[id];
 
-        if (!state.unlocked && achievement.requirement()) {
-            state.unlocked = true;
-            state.notified = false;
-            needsRender.achievements = true;
-
-            // Show notification
-            setTimeout(() => {
-                if (!state.notified) {
-                    showNotification(achievement.name, achievement.reward);
-                    state.notified = true;
-                }
-            }, 500);
-
-            addLog(`🏆 Achievement Unlocked: ${achievement.name}`);
+        if (state && state.unlocked && achievement.reward) {
+            switch (achievement.reward.type) {
+                case 'clickMultiplier':
+                    multipliers.click *= achievement.reward.value;
+                    break;
+                case 'productionMultiplier':
+                    multipliers.production *= achievement.reward.value;
+                    break;
+                case 'tokenMultiplier':
+                    multipliers.token *= achievement.reward.value;
+                    break;
+                case 'stockMultiplier':
+                    multipliers.stock *= achievement.reward.value;
+                    break;
+                case 'critBonus':
+                    multipliers.crit *= achievement.reward.value;
+                    break;
+            }
         }
     });
+
+    return multipliers;
+}
+
+// Show achievement notification with animation
+function showAchievementNotification(achievement) {
+    const notification = document.createElement('div');
+    notification.className = 'achievement-notification';
+    notification.innerHTML = `
+        <div class="achievement-notification-icon">${achievement.icon}</div>
+        <div class="achievement-notification-content">
+            <div class="achievement-notification-title">Achievement Unlocked!</div>
+            <div class="achievement-notification-name">${achievement.name}</div>
+            <div class="achievement-notification-desc">${achievement.reward.description}</div>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Create particle burst
+    createAchievementParticles();
+
+    // Animate in
+    setTimeout(() => notification.classList.add('show'), 10);
+
+    // Remove after 4 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 500);
+    }, 4000);
+}
+
+// Create particle effects for achievement unlock
+function createAchievementParticles() {
+    const container = document.body;
+    const centerX = window.innerWidth / 2;
+    const centerY = 100;
+
+    for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'achievement-particle';
+
+        const angle = (Math.PI * 2 * i) / 20;
+        const velocity = 80 + Math.random() * 60;
+        const tx = Math.cos(angle) * velocity;
+        const ty = Math.sin(angle) * velocity;
+
+        particle.style.left = centerX + 'px';
+        particle.style.top = centerY + 'px';
+        particle.style.setProperty('--tx', tx + 'px');
+        particle.style.setProperty('--ty', ty + 'px');
+
+        // Random colors for achievement particles
+        const colors = ['#ffd700', '#ff8c00', '#ff6b6b', '#4fc3f7', '#66bb6a'];
+        particle.style.background = `radial-gradient(circle, ${colors[i % colors.length]}, ${colors[(i + 1) % colors.length]})`;
+
+        container.appendChild(particle);
+
+        setTimeout(() => {
+            if (particle.parentNode) {
+                particle.parentNode.removeChild(particle);
+            }
+        }, 1000);
+    }
+}
+
+// Tutorial modal explaining prestige system
+function showTutorialModal() {
+    const tutorialReward = calculateApocalypseReward();
+    const modal = document.createElement('div');
+    modal.className = 'tutorial-modal';
+    modal.innerHTML = `
+        <div class="tutorial-content">
+            <h2>🎓 YOUR FIRST APOCALYPSE</h2>
+            <div class="tutorial-text">
+                <p><strong>Congratulations!</strong> You've reached 1,000 chaos points!</p>
+                <p>You're about to trigger your first <strong>Apocalypse</strong> - the core mechanic of this game.</p>
+
+                <h3>What is an Apocalypse?</h3>
+                <p>An Apocalypse is a <strong>prestige reset</strong> that gives you:</p>
+                <ul>
+                    <li>💀 <strong>Apocalypse Tokens</strong> - permanent currency</li>
+                    <li>🧬 Unlock <strong>Mutations</strong> - powerful permanent upgrades</li>
+                    <li>📈 Each reset makes you stronger for the next run</li>
+                </ul>
+
+                <h3>What happens when you apocalypse?</h3>
+                <p>✓ You'll earn <strong>${tutorialReward} Apocalypse Token${tutorialReward !== 1 ? 's' : ''}</strong><br>
+                ✓ Your chaos, departments, and upgrades will reset<br>
+                ✓ Your tokens and mutations stay <strong>forever</strong><br>
+                ✓ You'll start fresh but with permanent bonuses</p>
+
+                <p class="tutorial-emphasis">This is where the <strong>true game</strong> begins!</p>
+            </div>
+            <button class="tutorial-button" id="triggerTutorialBtn">🔥 TRIGGER MY FIRST APOCALYPSE 🔥</button>
+            <button class="tutorial-cancel-button" id="cancelTutorialBtn">Wait, I want to prepare more</button>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Button handlers
+    document.getElementById('triggerTutorialBtn').addEventListener('click', () => {
+        document.body.removeChild(modal);
+        completeTutorialApocalypse();
+    });
+
+    document.getElementById('cancelTutorialBtn').addEventListener('click', () => {
+        document.body.removeChild(modal);
+        addLog('Take your time! The apocalypse will be ready when you are.');
+    });
+
+    // Animate in
+    setTimeout(() => modal.classList.add('show'), 10);
+}
+
+// Tutorial apocalypse success screen
+function showTutorialApocalypseAnimation(tokensGained, runTime) {
+    const overlay = document.createElement('div');
+    overlay.className = 'tutorial-success-overlay';
+    overlay.innerHTML = `
+        <div class="tutorial-success-content">
+            <h1>🎉 APOCALYPSE COMPLETE! 🎉</h1>
+            <div class="tutorial-success-stats">
+                <div class="success-stat">
+                    <div class="success-stat-label">Run Duration</div>
+                    <div class="success-stat-value">${formatTime(runTime)}</div>
+                </div>
+                <div class="success-stat highlight">
+                    <div class="success-stat-label">💀 Tokens Earned</div>
+                    <div class="success-stat-value">+${tokensGained}</div>
+                </div>
+            </div>
+
+            <div class="tutorial-success-message">
+                <h2>✨ TRUE GAME UNLOCKED! ✨</h2>
+                <p>Apocalypse Tokens provide <strong>permanent bonuses</strong> through Mutations!</p>
+                <p>Check the <strong>Mutations tab</strong> to spend your tokens on powerful upgrades.</p>
+                <p>Each apocalypse makes you stronger. The cycle continues!</p>
+            </div>
+
+            <div class="tutorial-complete-badge">
+                ✓ Tutorial Complete
+            </div>
+
+            <button class="tutorial-continue-button" id="continueBtn">CONTINUE TO APOCALYPSE CORP</button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Button handler
+    document.getElementById('continueBtn').addEventListener('click', () => {
+        overlay.classList.remove('show');
+        setTimeout(() => {
+            if (overlay.parentNode) {
+                document.body.removeChild(overlay);
+            }
+        }, 300);
+    });
+
+    // Animate in
+    setTimeout(() => overlay.classList.add('show'), 10);
+
+    // Screen shake for excitement
+    screenShake(3);
 }
 
 // Notification system
@@ -577,14 +1096,20 @@ function playSound(type) {
     // Different sounds for different events
     switch (type) {
         case 'click':
-            // Soft, pleasant click sound
+            // Soft, pleasant click sound with pitch variation based on click power
             const clickOsc = ctx.createOscillator();
             const clickGain = ctx.createGain();
             const clickFilter = ctx.createBiquadFilter();
 
+            // Vary pitch based on click power (higher power = higher pitch)
+            const basePitch = 600;
+            const powerMultiplier = Math.min(gameState.doomPerClick / 10, 5); // Cap at 5x
+            const startFreq = basePitch + (powerMultiplier * 100);
+            const endFreq = (basePitch - 200) + (powerMultiplier * 80);
+
             clickOsc.type = 'sine';
-            clickOsc.frequency.setValueAtTime(600, now);
-            clickOsc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
+            clickOsc.frequency.setValueAtTime(startFreq, now);
+            clickOsc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.05);
 
             clickFilter.type = 'lowpass';
             clickFilter.frequency.value = 2000;
@@ -753,6 +1278,58 @@ function playSound(type) {
     }
 }
 
+// Safe object merge - prevents prototype pollution
+function safeMergeGameState(loadedState) {
+    // List of dangerous keys that could be used for prototype pollution
+    const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
+    
+    // Helper to check if a key is safe
+    const isSafeKey = (key) => !dangerousKeys.includes(key);
+    
+    // Safely merge loaded state into game state
+    Object.keys(loadedState).forEach(key => {
+        if (!isSafeKey(key)) {
+            console.warn(`Blocked potentially dangerous key in save data: ${key}`);
+            return;
+        }
+        
+        const value = loadedState[key];
+        
+        // Handle nested objects (departments, stocks, mutations, achievements)
+        if (key === 'departments' || key === 'stocks' || key === 'mutations' || key === 'achievements') {
+            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                Object.keys(value).forEach(subKey => {
+                    if (isSafeKey(subKey) && typeof value[subKey] === 'object') {
+                        // Safe to merge nested objects
+                        gameState[key][subKey] = { ...value[subKey] };
+                    }
+                });
+            }
+        } else if (key === 'milestonesPassed') {
+            // Handle milestonesPassed object
+            if (typeof value === 'object' && value !== null) {
+                Object.keys(value).forEach(subKey => {
+                    if (isSafeKey(subKey)) {
+                        gameState[key][subKey] = value[subKey];
+                    }
+                });
+            }
+        } else if (key === 'upgradeMultipliers') {
+            // Handle upgradeMultipliers object
+            if (typeof value === 'object' && value !== null) {
+                Object.keys(value).forEach(subKey => {
+                    if (isSafeKey(subKey)) {
+                        gameState[key][subKey] = value[subKey];
+                    }
+                });
+            }
+        } else {
+            // For simple values, assign directly
+            gameState[key] = value;
+        }
+    });
+}
+
 // Calculate offline progress
 function calculateOfflineProgress(timeDiff) {
     if (timeDiff < 1000) return; // Less than 1 second, ignore
@@ -784,11 +1361,24 @@ function calculateOfflineProgress(timeDiff) {
 
 // Core Game Functions
 function formatNumber(num) {
+    if (num >= 1e18) return (num / 1e18).toFixed(2) + 'Qi'; // Quintillion
+    if (num >= 1e15) return (num / 1e15).toFixed(2) + 'Qa'; // Quadrillion
     if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
     if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
     if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
     if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
-    return Math.floor(num).toString();
+    // Add commas for numbers under 1000
+    return Math.floor(num).toLocaleString('en-US');
+}
+
+// Get color class based on number magnitude
+function getNumberColor(num) {
+    if (num >= 1e15) return 'color-qi'; // Quintillion+
+    if (num >= 1e12) return 'color-qa'; // Quadrillion+
+    if (num >= 1e9) return 'color-t';  // Trillion+
+    if (num >= 1e6) return 'color-b';  // Billion+
+    if (num >= 1e3) return 'color-m';  // Million+
+    return 'color-k'; // Thousands and below
 }
 
 function formatTime(ms) {
@@ -831,18 +1421,19 @@ function getDepartmentProduction(deptId) {
     const count = gameState.departments[deptId].count;
     let production = dept.baseProduction * count;
 
+    // Apply upgrade multipliers (from gameState, not mutating base values)
+    if (gameState.upgradeMultipliers && gameState.upgradeMultipliers[deptId]) {
+        production *= gameState.upgradeMultipliers[deptId];
+    }
+
     // Apply mutation production multiplier
     if (gameState.mutations.aiTakeover?.unlocked) {
         production *= MUTATIONS.aiTakeover.value;
     }
 
     // Apply achievement production multiplier
-    if (gameState.achievements?.allDepartments?.unlocked) {
-        production *= 1.1;
-    }
-    if (gameState.achievements?.billionaire?.unlocked) {
-        production *= 1.05;
-    }
+    const achievementMults = getAchievementMultipliers();
+    production *= achievementMults.production;
 
     // Apply scenario effects
     if (gameState.currentScenario) {
@@ -869,9 +1460,8 @@ function calculateChaosPerSecond() {
         let dividend = stockData.dividend;
 
         // Apply achievement stock dividend bonus
-        if (gameState.achievements?.stockMarket?.unlocked) {
-            dividend *= 1.05;
-        }
+        const achievementMults = getAchievementMultipliers();
+        dividend *= achievementMults.stock;
 
         total += stock.shares * stock.currentPrice * dividend / 100;
     });
@@ -879,18 +1469,59 @@ function calculateChaosPerSecond() {
     return total;
 }
 
-function buyDepartment(deptId) {
-    const cost = getDepartmentCost(deptId);
-    if (gameState.chaosPoints >= cost) {
-        gameState.chaosPoints -= cost;
-        gameState.departments[deptId].count++;
-        needsRender.departments = true;
-        needsRender.upgrades = true; // Some upgrades unlock based on department count
-        checkAchievements();
-        updateDisplay();
-        addLog(`Hired ${DEPARTMENTS[deptId].name}`);
+function calculateBulkCost(deptId, amount) {
+    const dept = DEPARTMENTS[deptId];
+    const currentCount = gameState.departments[deptId].count;
+    const baseCost = dept.baseCost;
+    const mult = dept.costMultiplier;
 
-        // Play purchase sound
+    // Sum of geometric series: a * (1 - r^n) / (1 - r)
+    const firstCost = baseCost * Math.pow(mult, currentCount);
+    if (mult === 1) {
+        return firstCost * amount;
+    } else {
+        return firstCost * (1 - Math.pow(mult, amount)) / (1 - mult);
+    }
+}
+
+function buyDepartment(deptId) {
+    const buyAmount = gameState.buyMode;
+    const dept = DEPARTMENTS[deptId];
+    const currentCount = gameState.departments[deptId].count;
+
+    let amount, totalCost;
+
+    if (buyAmount === 'max') {
+        // Calculate max affordable
+        let n = 0;
+        let cost = 0;
+        const baseCost = dept.baseCost;
+        const mult = dept.costMultiplier;
+
+        while (true) {
+            const nextCost = baseCost * Math.pow(mult, currentCount + n);
+            if (cost + nextCost > gameState.chaosPoints) break;
+            cost += nextCost;
+            n++;
+            if (n > 1000) break; // Safety limit
+        }
+
+        amount = n;
+        totalCost = cost;
+    } else {
+        amount = Math.min(buyAmount, 1000);
+        totalCost = calculateBulkCost(deptId, amount);
+    }
+
+    if (amount > 0 && gameState.chaosPoints >= totalCost) {
+        gameState.chaosPoints -= totalCost;
+        gameState.departments[deptId].count += amount;
+        needsRender.departments = true;
+        needsRender.upgrades = true;
+        checkAllAchievements();
+        updateDisplay();
+        addLog(`Hired ${amount}x ${DEPARTMENTS[deptId].name} for ${formatNumber(totalCost)} chaos`);
+
         if (gameState.soundEnabled) {
             playSound('purchase');
         }
@@ -924,7 +1555,7 @@ function unlockMutation(mutationId) {
         }
         gameState.mutations[mutationId].unlocked = true;
         needsRender.mutations = true;
-        checkAchievements();
+        checkAllAchievements();
         updateDisplay();
         addLog(`Unlocked mutation: ${mutation.name}`);
     }
@@ -935,7 +1566,7 @@ function buyStock(stockId) {
     if (gameState.chaosPoints >= stock.currentPrice) {
         gameState.chaosPoints -= stock.currentPrice;
         stock.shares++;
-        checkAchievements();
+        checkAllAchievements();
         updateDisplay();
         addLog(`Bought 1 share of ${STOCKS[stockId].name} for ${formatNumber(stock.currentPrice)}`);
     }
@@ -987,7 +1618,7 @@ function selectScenario() {
 }
 
 function calculateApocalypseReward() {
-    let baseReward = Math.floor(Math.sqrt(gameState.chaosPoints / 1000000));
+    let baseReward = Math.floor(Math.sqrt(gameState.chaosPoints / 10000));
     baseReward = Math.max(1, baseReward);
 
     // Apply mutation bonus
@@ -995,18 +1626,100 @@ function calculateApocalypseReward() {
         baseReward = Math.floor(baseReward * MUTATIONS.timeLoop.value);
     }
 
-    // Apply achievement bonuses
-    if (gameState.achievements?.apocalypse10?.unlocked) {
-        baseReward = Math.floor(baseReward * 1.05);
-    }
-    if (gameState.achievements?.apocalypse50?.unlocked) {
-        baseReward = Math.floor(baseReward * 1.10);
-    }
+    // Apply achievement token multiplier
+    const achievementMults = getAchievementMultipliers();
+    baseReward = Math.floor(baseReward * achievementMults.token);
 
     return baseReward;
 }
 
+// Tutorial apocalypse for first-time players
+function triggerTutorialApocalypse() {
+    if (gameState.tutorialCompleted) return;
+
+    // Show tutorial modal first
+    showTutorialModal();
+}
+
+function completeTutorialApocalypse() {
+    const runTime = Date.now() - gameState.runStartTime;
+    const reward = calculateApocalypseReward(); // Use regular formula
+
+    // Track best run
+    if (!gameState.bestRunTime || runTime < gameState.bestRunTime) {
+        gameState.bestRunTime = runTime;
+    }
+
+    // Show special tutorial apocalypse animation
+    showTutorialApocalypseAnimation(reward, runTime);
+
+    // Play apocalypse sound
+    if (gameState.soundEnabled) {
+        playSound('apocalypse');
+    }
+
+    // Award tokens
+    gameState.apocalypseTokens += reward;
+    gameState.totalApocalypses++;
+    gameState.tutorialCompleted = true;
+
+    addLog(`💀 YOUR FIRST APOCALYPSE! Gained ${reward} Apocalypse Tokens 💀`);
+
+    // Reset run state (same as normal apocalypse)
+    gameState.chaosPoints = 0;
+    gameState.doomEnergy = 0;
+    gameState.doomClockProgress = 0;
+    gameState.chaosPerSecond = 0;
+    gameState.doomPerClick = 1;
+
+    // Reset departments
+    Object.keys(gameState.departments).forEach(id => {
+        gameState.departments[id].count = 0;
+    });
+
+    // Reset upgrades
+    gameState.upgrades = {};
+
+    // Reset upgrade multipliers
+    Object.keys(gameState.upgradeMultipliers).forEach(deptId => {
+        gameState.upgradeMultipliers[deptId] = 1;
+    });
+
+    // New scenario
+    selectScenario();
+
+    // Reset timer
+    gameState.runStartTime = Date.now();
+
+    // Reset stocks
+    Object.keys(STOCKS).forEach(id => {
+        gameState.stocks[id].currentPrice = STOCKS[id].basePrice;
+        gameState.stocks[id].priceHistory = [STOCKS[id].basePrice];
+    });
+
+    // Check achievements
+    checkAllAchievements();
+
+    // Mark everything for re-render
+    needsRender.departments = true;
+    needsRender.upgrades = true;
+    needsRender.stocks = true;
+    needsRender.mutations = true;
+    needsRender.achievements = true;
+
+    // Save immediately
+    localStorage.setItem('apocalypseCorpSave', JSON.stringify(gameState));
+
+    updateDisplay();
+}
+
 function triggerApocalypse() {
+    // Check if this should be tutorial apocalypse
+    if (!gameState.tutorialCompleted && gameState.chaosPoints >= 1000) {
+        triggerTutorialApocalypse();
+        return;
+    }
+
     const runTime = Date.now() - gameState.runStartTime;
     const reward = calculateApocalypseReward();
 
@@ -1014,6 +1727,62 @@ function triggerApocalypse() {
         addLog('Not enough chaos to trigger apocalypse!');
         return;
     }
+
+    // Show confirmation modal (unless it's the tutorial)
+    showApocalypseConfirmation(reward, runTime);
+}
+
+function showApocalypseConfirmation(reward, runTime) {
+    const modal = document.createElement('div');
+    modal.className = 'apocalypse-confirmation-modal';
+    modal.innerHTML = `
+        <div class="apocalypse-confirmation-content">
+            <h2>🔥 CONFIRM APOCALYPSE 🔥</h2>
+            <div class="apocalypse-confirmation-text">
+                <p><strong>Are you sure you want to end this run?</strong></p>
+
+                <div class="apocalypse-confirmation-stats">
+                    <div class="confirmation-stat">
+                        <span class="confirmation-label">Run Duration:</span>
+                        <span class="confirmation-value">${formatTime(runTime)}</span>
+                    </div>
+                    <div class="confirmation-stat highlight">
+                        <span class="confirmation-label">Tokens You'll Gain:</span>
+                        <span class="confirmation-value">💀 ${reward}</span>
+                    </div>
+                    <div class="confirmation-stat">
+                        <span class="confirmation-label">Current Chaos:</span>
+                        <span class="confirmation-value">${formatNumber(gameState.chaosPoints)}</span>
+                    </div>
+                </div>
+
+                <p class="confirmation-warning">⚠️ This will reset all departments, upgrades, and chaos points!</p>
+            </div>
+            <div class="apocalypse-confirmation-buttons">
+                <button class="apocalypse-confirm-btn" id="confirmApocalypseBtn">🔥 TRIGGER APOCALYPSE 🔥</button>
+                <button class="apocalypse-cancel-btn" id="cancelApocalypseBtn">Cancel</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Button handlers
+    document.getElementById('confirmApocalypseBtn').addEventListener('click', () => {
+        document.body.removeChild(modal);
+        executeApocalypse(reward, runTime);
+    });
+
+    document.getElementById('cancelApocalypseBtn').addEventListener('click', () => {
+        document.body.removeChild(modal);
+        addLog('Apocalypse cancelled. Continue building chaos!');
+    });
+
+    // Animate in
+    setTimeout(() => modal.classList.add('show'), 10);
+}
+
+function executeApocalypse(reward, runTime) {
 
     // Track best run
     if (!gameState.bestRunTime || runTime < gameState.bestRunTime) {
@@ -1073,6 +1842,11 @@ function triggerApocalypse() {
     // Keep mutations but reset upgrades
     gameState.upgrades = {};
 
+    // Reset upgrade multipliers
+    Object.keys(gameState.upgradeMultipliers).forEach(deptId => {
+        gameState.upgradeMultipliers[deptId] = 1;
+    });
+
     // Give carryover chaos
     if (carryoverChaos > 0) {
         gameState.chaosPoints = (carryoverChaos * 10) + startingBonus; // Convert per-second to initial capital
@@ -1092,7 +1866,7 @@ function triggerApocalypse() {
     });
 
     // Check achievements after apocalypse
-    checkAchievements();
+    checkAllAchievements();
 
     // Mark everything for re-render
     needsRender.departments = true;
@@ -1102,6 +1876,86 @@ function triggerApocalypse() {
     needsRender.achievements = true;
 
     updateDisplay();
+}
+
+// Screen shake effect
+function screenShake(intensity = 1) {
+    const body = document.body;
+    const shakePx = Math.min(0.5 + intensity * 0.3, 1.5); // 0.8-1.5px based on intensity (much gentler)
+
+    body.style.transform = `translate(${Math.random() * shakePx - shakePx/2}px, ${Math.random() * shakePx - shakePx/2}px)`;
+
+    setTimeout(() => {
+        body.style.transform = 'translate(0, 0)';
+    }, 50); // Shorter duration for subtler effect
+}
+
+// Click ripple effect
+function createRipple(x, y, container) {
+    const ripple = document.createElement('div');
+    ripple.className = 'click-ripple';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+
+    container.appendChild(ripple);
+
+    setTimeout(() => {
+        if (ripple.parentNode) {
+            ripple.parentNode.removeChild(ripple);
+        }
+    }, 500);
+}
+
+// Milestone celebration effect
+function celebrateMilestone(milestone) {
+    const clockSection = document.querySelector('.doomsday-clock-section');
+    const rect = clockSection.getBoundingClientRect();
+
+    // Create confetti burst (gold particles)
+    for (let i = 0; i < 30; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle confetti';
+
+        const angle = (Math.PI * 2 * i) / 30;
+        const velocity = 100 + Math.random() * 100;
+        const tx = Math.cos(angle) * velocity;
+        const ty = Math.sin(angle) * velocity;
+
+        particle.style.left = rect.width / 2 + 'px';
+        particle.style.top = rect.height / 2 + 'px';
+        particle.style.setProperty('--tx', tx + 'px');
+        particle.style.setProperty('--ty', ty + 'px');
+
+        clockSection.appendChild(particle);
+
+        setTimeout(() => {
+            if (particle.parentNode) {
+                particle.parentNode.removeChild(particle);
+            }
+        }, 1000);
+    }
+
+    // Screen flash
+    const flash = document.createElement('div');
+    flash.className = 'screen-flash';
+    document.body.appendChild(flash);
+    setTimeout(() => {
+        if (flash.parentNode) {
+            flash.parentNode.removeChild(flash);
+        }
+    }, 300);
+
+    // Show milestone message
+    const milestoneText = {
+        '1000': '🎉 1,000 CHAOS MILESTONE! 🎉',
+        '10000': '🎊 10,000 CHAOS MILESTONE! 🎊',
+        '100000': '🏆 100,000 CHAOS MILESTONE! 🏆'
+    };
+
+    showNotification('Milestone Reached!', milestoneText[milestone] || 'Milestone achieved!');
+
+    // Intense screen shake
+    screenShake(5);
 }
 
 // Click handler
@@ -1126,16 +1980,28 @@ function handleDoomClick(event) {
 
     let clickPower = gameState.doomPerClick * gameState.comboMultiplier;
 
+    // Apply achievement click multiplier
+    const achievementMults = getAchievementMultipliers();
+    clickPower *= achievementMults.click;
+
     // Check for critical hit
     let isCrit = false;
     if (gameState.critChance > 0 && Math.random() < gameState.critChance) {
-        clickPower *= gameState.critMultiplier;
+        let critMultiplier = gameState.critMultiplier * achievementMults.crit;
+        clickPower *= critMultiplier;
         isCrit = true;
+        gameState.totalCrits++;
 
         // Play crit sound
         if (gameState.soundEnabled) {
             playSound('crit');
         }
+
+        // Screen shake on crit
+        screenShake(2);
+    } else {
+        // Regular screen shake
+        screenShake(1);
     }
 
     // Track clicks for achievements
@@ -1156,10 +2022,25 @@ function handleDoomClick(event) {
     }
 
     // Directly generate chaos points from clicking
+    const oldChaos = gameState.totalChaosEarned;
     gameState.chaosPoints += clickPower;
     gameState.totalChaosEarned += clickPower;
     gameState.doomEnergy += clickPower;
     gameState.doomClockProgress += clickPower;
+
+    // Check for milestone celebrations
+    if (!gameState.milestonesPassed.chaos1k && gameState.totalChaosEarned >= 1000 && oldChaos < 1000) {
+        gameState.milestonesPassed.chaos1k = true;
+        celebrateMilestone('1000');
+    }
+    if (!gameState.milestonesPassed.chaos10k && gameState.totalChaosEarned >= 10000 && oldChaos < 10000) {
+        gameState.milestonesPassed.chaos10k = true;
+        celebrateMilestone('10000');
+    }
+    if (!gameState.milestonesPassed.chaos100k && gameState.totalChaosEarned >= 100000 && oldChaos < 100000) {
+        gameState.milestonesPassed.chaos100k = true;
+        celebrateMilestone('100000');
+    }
 
     // Doomsday clock mechanics
     const clockThreshold = 100 + (gameState.totalApocalypses * 50);
@@ -1173,7 +2054,7 @@ function handleDoomClick(event) {
     }
 
     // Check achievements
-    checkAchievements();
+    checkAllAchievements();
 
     // Create floating chaos point animation with combo and crit
     const comboText = gameState.comboCount > 1 ? ` x${gameState.comboCount}` : '';
@@ -1185,6 +2066,19 @@ function handleDoomClick(event) {
     const clockFill = document.getElementById('clockFill');
     clockFill.classList.add('pulse');
     setTimeout(() => clockFill.classList.remove('pulse'), 300);
+
+    // Button click feedback
+    const button = event.target.closest('.doom-button');
+    if (button) {
+        button.classList.add('clicking');
+        setTimeout(() => button.classList.remove('clicking'), 150);
+
+        // Create ripple effect
+        const rect = button.getBoundingClientRect();
+        const x = event.clientX ? event.clientX - rect.left : rect.width / 2;
+        const y = event.clientY ? event.clientY - rect.top : rect.height / 2;
+        createRipple(x, y, button);
+    }
 
     // Tutorial hint after first few clicks
     if (gameState.chaosPoints >= 10 && gameState.chaosPoints <= 12 &&
@@ -1229,9 +2123,18 @@ function createFloatingText(text, event, className = 'floating-chaos') {
     }, 1000);
 }
 
-// Create particle explosion effect
+// Create particle explosion effect with global limit
 function createParticles(x, y, container) {
-    const particleCount = 8;
+    const maxParticles = 15;
+
+    // Check current particle count BEFORE any other operations
+    const currentParticles = document.querySelectorAll('.particle').length;
+    if (currentParticles >= maxParticles) {
+        return; // Skip particle creation entirely
+    }
+
+    const particleCount = Math.min(8, maxParticles - currentParticles);
+
     for (let i = 0; i < particleCount; i++) {
         const particle = document.createElement('div');
         particle.className = 'particle';
@@ -1331,7 +2234,14 @@ function gameTick() {
 
     // Periodically check achievements (every second)
     if (Math.floor(now / 1000) !== Math.floor((now - delta * 1000) / 1000)) {
-        checkAchievements();
+        checkAllAchievements();
+    }
+
+    // Tutorial hint at 500 chaos
+    if (!gameState.tutorialCompleted && !gameState.tutorialHintShown && gameState.chaosPoints >= 500) {
+        gameState.tutorialHintShown = true;
+        showNotification('💡 Almost there!', 'Reach 1,000 chaos for your first apocalypse and unlock the true game!');
+        addLog('💡 Almost there! Reach 1,000 chaos for your first apocalypse!');
     }
 
     updateDisplay();
@@ -1354,23 +2264,33 @@ let needsRender = {
 
 // UI Update
 function updateDisplay() {
-    // Resources
-    document.getElementById('doomEnergy').textContent = formatNumber(gameState.doomEnergy);
-    document.getElementById('chaosPoints').textContent = formatNumber(gameState.chaosPoints);
-    document.getElementById('chaosPerSec').textContent = formatNumber(gameState.chaosPerSecond);
+    // Resources with color coding
+    const doomEnergyEl = document.getElementById('doomEnergy');
+    doomEnergyEl.textContent = formatNumber(gameState.doomEnergy);
+    doomEnergyEl.className = 'resource-value ' + getNumberColor(gameState.doomEnergy);
+
+    const chaosPointsEl = document.getElementById('chaosPoints');
+    chaosPointsEl.textContent = formatNumber(gameState.chaosPoints);
+    chaosPointsEl.className = 'resource-value ' + getNumberColor(gameState.chaosPoints);
+
+    const chaosPerSecEl = document.getElementById('chaosPerSec');
+    chaosPerSecEl.textContent = formatNumber(gameState.chaosPerSecond);
+    chaosPerSecEl.className = 'resource-value ' + getNumberColor(gameState.chaosPerSecond);
+
     document.getElementById('apocalypseTokens').textContent = gameState.apocalypseTokens;
     document.getElementById('doomPerClick').textContent = formatNumber(gameState.doomPerClick);
 
-    // Update combo display
+    // Update combo display - only show if 3+ clicks in last second (3+ clicks/sec)
     const comboIndicator = document.getElementById('comboIndicator');
-    if (gameState.comboCount > 1) {
+    const clicksPerSec = gameState.comboCount / (gameState.comboTimeWindow / 1000);
+    if (gameState.comboCount > 1 && clicksPerSec >= 3) {
         comboIndicator.textContent = `🔥 COMBO x${gameState.comboCount} (${gameState.comboMultiplier.toFixed(1)}x)`;
         comboIndicator.style.display = 'block';
     } else {
         comboIndicator.style.display = 'none';
     }
 
-    // Doomsday clock
+    // Doomsday clock (hidden during tutorial)
     const clockThreshold = 100 + (gameState.totalApocalypses * 50);
     const clockPercent = (gameState.doomClockProgress / clockThreshold) * 100;
     document.getElementById('clockFill').style.width = Math.min(100, clockPercent) + '%';
@@ -1380,20 +2300,54 @@ function updateDisplay() {
     document.getElementById('clockTime').textContent =
         `${hours}:${minutes.toString().padStart(2, '0')} PM`;
 
-    // Apocalypse progress bar
-    document.getElementById('apocalypseProgress').style.width = Math.min(100, clockPercent) + '%';
-    document.getElementById('apocalypseProgressText').textContent = Math.floor(clockPercent) + '%';
+    // Hide only the clock display during tutorial (not the whole section with the button!)
+    const clockDisplay = document.querySelector('.clock-display');
+    if (clockDisplay) {
+        if (!gameState.tutorialCompleted) {
+            clockDisplay.style.display = 'none';
+        } else {
+            clockDisplay.style.display = 'block';
+        }
+    }
 
-    // Apocalypse button
-    const apocalypseReward = calculateApocalypseReward();
-    document.getElementById('apocalypseReward').textContent = apocalypseReward;
-    document.getElementById('apocalypseButton').disabled =
-        clockPercent < 100 || apocalypseReward === 0;
+    // Tutorial mode: show progress to 1,000 chaos instead of clock
+    if (!gameState.tutorialCompleted) {
+        const tutorialProgress = Math.min(100, (gameState.chaosPoints / 1000) * 100);
+        document.getElementById('apocalypseProgress').style.width = tutorialProgress + '%';
+        document.getElementById('apocalypseProgressText').textContent =
+            `${Math.floor(gameState.chaosPoints)}/1,000 chaos`;
 
-    if (clockPercent >= 100) {
-        document.getElementById('apocalypseSection').style.display = 'block';
+        const apocalypseButton = document.getElementById('apocalypseButton');
+        const apocalypseSection = document.getElementById('apocalypseSection');
+
+        if (gameState.chaosPoints >= 1000) {
+            // Show glowing tutorial button
+            apocalypseSection.style.display = 'block';
+            apocalypseButton.textContent = '🔥 FIRST APOCALYPSE AVAILABLE! 🔥';
+            apocalypseButton.className = 'tutorial-apocalypse-button';
+            apocalypseButton.disabled = false;
+            document.getElementById('apocalypseReward').textContent = '2 (Tutorial Bonus)';
+        } else {
+            apocalypseSection.style.display = 'none';
+        }
     } else {
-        document.getElementById('apocalypseSection').style.display = 'none';
+        // Normal mode: use doomsday clock
+        document.getElementById('apocalypseProgress').style.width = Math.min(100, clockPercent) + '%';
+        document.getElementById('apocalypseProgressText').textContent = Math.floor(clockPercent) + '%';
+
+        // Apocalypse button
+        const apocalypseReward = calculateApocalypseReward();
+        const apocalypseButton = document.getElementById('apocalypseButton');
+        apocalypseButton.textContent = 'TRIGGER APOCALYPSE';
+        apocalypseButton.className = '';
+        document.getElementById('apocalypseReward').textContent = apocalypseReward;
+        apocalypseButton.disabled = clockPercent < 100 || apocalypseReward === 0;
+
+        if (clockPercent >= 100) {
+            document.getElementById('apocalypseSection').style.display = 'block';
+        } else {
+            document.getElementById('apocalypseSection').style.display = 'none';
+        }
     }
 
     // Stats
@@ -1519,7 +2473,18 @@ function renderDepartments() {
 
     Object.values(DEPARTMENTS).forEach(dept => {
         const count = gameState.departments[dept.id].count;
-        const cost = getDepartmentCost(dept.id);
+
+        // Calculate cost based on buy mode
+        let cost, buyText;
+        if (gameState.buyMode === 'max') {
+            // For max, show "Max" and calculate on click
+            cost = getDepartmentCost(dept.id);
+            buyText = `Buy Max`;
+        } else {
+            cost = calculateBulkCost(dept.id, gameState.buyMode);
+            buyText = `Buy ${gameState.buyMode} - ${formatNumber(cost)}`;
+        }
+
         const production = getDepartmentProduction(dept.id);
         const canAfford = gameState.chaosPoints >= cost;
         const isUnlocked = dept.unlockRequirement();
@@ -1537,7 +2502,7 @@ function renderDepartments() {
                 <div class="item-footer">
                     <span class="item-production">+${formatNumber(dept.baseProduction)}/sec each</span>
                     <button class="buy-button" ${!canAfford ? 'disabled' : ''}>
-                        Buy - ${formatNumber(cost)} chaos
+                        ${buyText}
                     </button>
                 </div>
             `;
@@ -1695,27 +2660,108 @@ function renderAchievements() {
     `;
     container.appendChild(header);
 
+    // Group achievements by category
+    const categories = {
+        clicking: { name: 'Clicking', achievements: [] },
+        departments: { name: 'Departments', achievements: [] },
+        apocalypse: { name: 'Apocalypse', achievements: [] },
+        chaos: { name: 'Chaos', achievements: [] },
+        special: { name: 'Special', achievements: [] }
+    };
+
     Object.values(ACHIEVEMENTS).forEach(achievement => {
-        const state = gameState.achievements[achievement.id];
-        const isUnlocked = state?.unlocked || false;
-
-        const div = document.createElement('div');
-        div.className = `achievement-item ${isUnlocked ? 'unlocked' : 'locked'}`;
-        div.innerHTML = `
-            <div class="item-header">
-                <span class="item-name">${achievement.name}</span>
-                <span class="achievement-status ${isUnlocked ? 'unlocked' : 'locked'}">
-                    ${isUnlocked ? '✓ UNLOCKED' : '🔒 LOCKED'}
-                </span>
-            </div>
-            <div class="item-desc">${achievement.desc}</div>
-            <div class="item-footer">
-                <span class="achievement-reward">${isUnlocked ? '✓ ' : ''}${achievement.reward}</span>
-            </div>
-        `;
-
-        container.appendChild(div);
+        if (categories[achievement.category]) {
+            categories[achievement.category].achievements.push(achievement);
+        }
     });
+
+    // Render each category
+    Object.keys(categories).forEach(categoryKey => {
+        const category = categories[categoryKey];
+        if (category.achievements.length === 0) return;
+
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'achievement-category';
+
+        const categoryHeader = document.createElement('h3');
+        categoryHeader.className = 'achievement-category-header';
+        categoryHeader.textContent = category.name;
+        categoryDiv.appendChild(categoryHeader);
+
+        const gridDiv = document.createElement('div');
+        gridDiv.className = 'achievement-grid';
+
+        category.achievements.forEach(achievement => {
+            const state = gameState.achievements[achievement.id];
+            const isUnlocked = state?.unlocked || false;
+
+            // Calculate progress for locked achievements - ALWAYS show progress
+            let progressText = '';
+            let progressPercent = 0;
+            if (!isUnlocked) {
+                const current = getCurrentProgress(achievement);
+                const target = achievement.requirement.value;
+                progressPercent = Math.min(100, (current / target) * 100);
+                progressText = `${formatNumber(current)} / ${formatNumber(target)}`;
+            }
+
+            const div = document.createElement('div');
+            div.className = `achievement-card ${isUnlocked ? 'unlocked' : 'locked'}`;
+            div.innerHTML = `
+                <div class="achievement-card-icon">${achievement.icon}</div>
+                <div class="achievement-card-name">${achievement.name.replace(achievement.icon, '').trim()}</div>
+                <div class="achievement-card-desc">${achievement.desc}</div>
+                <div class="achievement-card-reward">${achievement.reward.description}</div>
+                ${!isUnlocked ? `
+                    <div class="achievement-card-progress">
+                        <div class="achievement-progress-bar">
+                            <div class="achievement-progress-fill" style="width: ${progressPercent}%"></div>
+                        </div>
+                        <div class="achievement-progress-text">${progressText}</div>
+                    </div>
+                ` : ''}
+                <div class="achievement-card-status ${isUnlocked ? 'unlocked' : 'locked'}">
+                    ${isUnlocked ? '✓ UNLOCKED' : '🔒 LOCKED'}
+                </div>
+            `;
+
+            gridDiv.appendChild(div);
+        });
+
+        categoryDiv.appendChild(gridDiv);
+        container.appendChild(categoryDiv);
+    });
+}
+
+// Get current progress for an achievement
+function getCurrentProgress(achievement) {
+    switch (achievement.requirement.type) {
+        case 'clicks':
+            return gameState.totalClicks;
+        case 'departments':
+            if (achievement.id === 'departments100') {
+                return Object.values(gameState.departments).reduce((sum, d) => sum + d.count, 0);
+            }
+            return Object.values(gameState.departments).filter(d => d.count > 0).length;
+        case 'apocalypses':
+            return gameState.totalApocalypses;
+        case 'chaos':
+            return gameState.chaosPoints;
+        case 'totalChaos':
+            return gameState.totalChaosEarned;
+        case 'stocks':
+            return Object.values(gameState.stocks).reduce((sum, s) => sum + s.shares, 0);
+        case 'mutations':
+            return Object.values(gameState.mutations).filter(m => m.unlocked).length;
+        case 'upgrades':
+            return Object.keys(gameState.upgrades).length;
+        case 'combo':
+            return gameState.comboCount;
+        case 'crits':
+            return gameState.totalCrits || 0;
+        default:
+            return 0;
+    }
 }
 
 // Initialize game when DOM is ready
@@ -1737,6 +2783,20 @@ function initializeGame() {
     document.getElementById('doomButton').addEventListener('click', handleDoomClick);
     document.getElementById('apocalypseButton').addEventListener('click', triggerApocalypse);
 
+    // Keyboard support - spacebar or Enter to click doom button
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' || e.code === 'Enter') {
+            // Don't trigger if user is typing in an input or modal is open
+            if (document.activeElement.tagName !== 'INPUT' &&
+                document.activeElement.tagName !== 'TEXTAREA' &&
+                !document.querySelector('.tutorial-modal') &&
+                !document.querySelector('.apocalypse-overlay.show')) {
+                e.preventDefault(); // Prevent page scroll on spacebar
+                handleDoomClick(e);
+            }
+        }
+    });
+
     document.getElementById('saveButton').addEventListener('click', () => {
         gameState.lastSaveTime = Date.now();
         localStorage.setItem('apocalypseCorpSave', JSON.stringify(gameState));
@@ -1747,24 +2807,29 @@ function initializeGame() {
     document.getElementById('loadButton').addEventListener('click', () => {
         const save = localStorage.getItem('apocalypseCorpSave');
         if (save) {
-            const loadedState = JSON.parse(save);
-            Object.assign(gameState, loadedState);
-            gameState.lastTick = Date.now();
+            try {
+                const loadedState = JSON.parse(save);
+                safeMergeGameState(loadedState);
+                gameState.lastTick = Date.now();
 
-            // Re-initialize objects to ensure all data structures exist
-            initializeDepartments();
-            initializeStocks();
-            initializeMutations();
-            initializeAchievements();
+                // Re-initialize objects to ensure all data structures exist
+                initializeDepartments();
+                initializeStocks();
+                initializeMutations();
+                initializeAchievements();
 
-            needsRender.departments = true;
-            needsRender.upgrades = true;
-            needsRender.stocks = true;
-            needsRender.mutations = true;
-            needsRender.achievements = true;
+                needsRender.departments = true;
+                needsRender.upgrades = true;
+                needsRender.stocks = true;
+                needsRender.mutations = true;
+                needsRender.achievements = true;
 
-            updateDisplay();
-            addLog('📂 Game loaded!');
+                updateDisplay();
+                addLog('📂 Game loaded!');
+            } catch (error) {
+                console.error('Failed to load save:', error);
+                addLog('❌ Failed to load save file');
+            }
         } else {
             addLog('No save found!');
         }
@@ -1794,7 +2859,7 @@ function initializeGame() {
                 reader.onload = (event) => {
                     try {
                         const loadedState = JSON.parse(event.target.result);
-                        Object.assign(gameState, loadedState);
+                        safeMergeGameState(loadedState);
                         gameState.lastTick = Date.now();
 
                         initializeDepartments();
@@ -1812,6 +2877,7 @@ function initializeGame() {
                         addLog('📥 Save imported successfully!');
                         showNotification('📥 Import Complete', 'Your save has been loaded');
                     } catch (err) {
+                        console.error('Failed to import save:', err);
                         addLog('❌ Failed to import save file');
                         alert('Failed to import save file. Please make sure it\'s a valid save file.');
                     }
@@ -1829,6 +2895,22 @@ function initializeGame() {
         addLog(gameState.soundEnabled ? '🔊 Sound enabled' : '🔇 Sound disabled');
     });
 
+    // Buy mode selector event listeners
+    document.querySelectorAll('.buy-mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mode = btn.dataset.mode;
+            gameState.buyMode = mode === 'max' ? 'max' : parseInt(mode);
+
+            // Update active state
+            document.querySelectorAll('.buy-mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Re-render departments to update costs
+            needsRender.departments = true;
+            updateDisplay();
+        });
+    });
+
     document.getElementById('resetButton').addEventListener('click', () => {
         if (confirm('Are you sure? This will delete ALL progress!')) {
             localStorage.removeItem('apocalypseCorpSave');
@@ -1838,8 +2920,8 @@ function initializeGame() {
 
     // Auto-save every 30 seconds
     setInterval(() => {
-        gameState.lastSaveTime = Date.now();
         localStorage.setItem('apocalypseCorpSave', JSON.stringify(gameState));
+        gameState.lastSaveTime = Date.now();
     }, 30000);
 
     // Initialize data structures first
@@ -1865,15 +2947,22 @@ function initializeGame() {
                 loadedState.soundEnabled = loadedState.soundEnabled !== undefined ? loadedState.soundEnabled : true;
             }
 
-            // Merge loaded state with initialized state
-            Object.keys(loadedState).forEach(key => {
-                if (key === 'departments' || key === 'stocks' || key === 'mutations' || key === 'achievements') {
-                    // Merge objects instead of replacing
-                    Object.assign(gameState[key], loadedState[key]);
-                } else {
-                    gameState[key] = loadedState[key];
-                }
-            });
+            // Initialize upgradeMultipliers if missing (for old saves or corrupted data)
+            if (!loadedState.upgradeMultipliers) {
+                loadedState.upgradeMultipliers = {
+                    intern: 1,
+                    meteor: 1,
+                    biohazard: 1,
+                    nuclear: 1,
+                    blackhole: 1,
+                    reality: 1,
+                    dimension: 1,
+                    paradox: 1
+                };
+            }
+
+            // Safely merge loaded state with initialized state
+            safeMergeGameState(loadedState);
 
             // Calculate offline progress
             const timeSinceLastSave = Date.now() - gameState.lastSaveTime;
