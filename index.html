@@ -1,0 +1,334 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apocalypse Corp - End Times Management Simulator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="stock-ticker" id="stockTicker">
+            <div class="ticker-content" id="tickerContent">
+                📊 DOOM INDEX: <span class="ticker-up">+∞%</span> |
+                🌍 HUMANITY FUTURES: <span class="ticker-down">-99.9%</span> |
+                ☄️ ASTEROID DELIVERY: ON SCHEDULE |
+                🧟 ZOMBIE BONDS: MATURE |
+                ⚠️ COMPLIANCE: WHO CARES?
+            </div>
+        </div>
+
+        <header>
+            <h1>🏢 APOCALYPSE CORP™</h1>
+            <p class="tagline">Monetizing the End Times Since 2025</p>
+            <p class="memo-banner">📋 HR MEMO: "Employees are reminded that causing premature apocalypses before EOQ will affect your bonus."</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Left Panel: Doomsday Clock & Resources -->
+            <div class="left-panel">
+                <div class="doomsday-clock-section">
+                    <h2>⏰ DOOMSDAY CLOCK</h2>
+                    <div class="clock-display">
+                        <div class="clock-time" id="clockTime">11:00 PM</div>
+                        <div class="clock-progress">
+                            <div class="clock-fill" id="clockFill"></div>
+                        </div>
+                    </div>
+                    <button class="doom-button" id="doomButton">
+                        ADVANCE DOOMSDAY
+                        <span class="doom-value">+<span id="doomPerClick">1</span> Chaos Point per click</span>
+                        <span class="keyboard-hint">Press SPACE to click</span>
+                        <span class="combo-indicator" id="comboIndicator"></span>
+                    </button>
+
+                    <div class="apocalypse-progress">
+                        <h4>📈 Apocalypse Readiness</h4>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" id="apocalypseProgress"></div>
+                            <span class="progress-text" id="apocalypseProgressText">0%</span>
+                        </div>
+                        <p class="progress-hint">Reach midnight to unlock apocalypse</p>
+                    </div>
+                </div>
+
+                <div class="resources-section">
+                    <h3>📊 RESOURCES</h3>
+                    <div class="resource-item">
+                        <span class="tooltip">Main currency - spend on departments and upgrades</span>
+                        <span class="resource-label">Chaos Points:</span>
+                        <span class="resource-value" id="chaosPoints">0</span>
+                    </div>
+                    <div class="resource-item">
+                        <span class="tooltip">Passive chaos generation from all departments</span>
+                        <span class="resource-label">Chaos/sec:</span>
+                        <span class="resource-value" id="chaosPerSec">0</span>
+                    </div>
+                    <div class="resource-item">
+                        <span class="tooltip">Accumulated power - generates bonus chaos over time</span>
+                        <span class="resource-label">Doom Energy:</span>
+                        <span class="resource-value" id="doomEnergy">0</span>
+                    </div>
+                    <div class="resource-item prestige-resource">
+                        <span class="tooltip">Premium currency - earned from apocalypses, unlocks mutations</span>
+                        <span class="resource-label">💀 Apocalypse Tokens:</span>
+                        <span class="resource-value" id="apocalypseTokens">0</span>
+                    </div>
+                </div>
+
+                <div class="apocalypse-section" id="apocalypseSection">
+                    <h3>🌋 TRIGGER APOCALYPSE</h3>
+                    <p class="apocalypse-info">End the world and gain powerful bonuses!</p>
+                    <button class="apocalypse-button" id="apocalypseButton">
+                        TRIGGER APOCALYPSE
+                        <span class="apocalypse-reward">Gain: <span id="apocalypseReward">0</span> tokens</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Center Panel: Upgrades & Departments -->
+            <div class="center-panel">
+                <div class="tab-container">
+                    <button class="tab-button active" data-tab="departments">DEPARTMENTS</button>
+                    <button class="tab-button" data-tab="upgrades">UPGRADES</button>
+                    <button class="tab-button" data-tab="stocks">DOOM STOCKS</button>
+                    <button class="tab-button" data-tab="mutations">MUTATIONS</button>
+                    <button class="tab-button" data-tab="achievements">ACHIEVEMENTS</button>
+                    <button class="tab-button" data-tab="community">COMMUNITY</button>
+                </div>
+
+                <!-- Departments Tab -->
+                <div class="tab-content active" id="departments">
+                    <h2>🏭 DISASTER DEPARTMENTS</h2>
+                    <div class="buy-mode-selector">
+                        <span>Buy Amount:</span>
+                        <button class="buy-mode-btn active" data-mode="1">1</button>
+                        <button class="buy-mode-btn" data-mode="10">10</button>
+                        <button class="buy-mode-btn" data-mode="100">100</button>
+                        <button class="buy-mode-btn" data-mode="max">Max</button>
+                    </div>
+                    <div class="departments-list" id="departmentsList"></div>
+                </div>
+
+                <!-- Upgrades Tab -->
+                <div class="tab-content" id="upgrades">
+                    <h2>⚡ EFFICIENCY UPGRADES</h2>
+                    <div class="upgrades-list" id="upgradesList"></div>
+                </div>
+
+                <!-- Stock Market Tab -->
+                <div class="tab-content" id="stocks">
+                    <h2>📈 DOOM STOCK MARKET</h2>
+                    <p class="stocks-info">Invest in corporations profiting from chaos!</p>
+                    <div class="stocks-list" id="stocksList"></div>
+                </div>
+
+                <!-- Mutations Tab -->
+                <div class="tab-content" id="mutations">
+                    <h2>☢️ APOCALYPSE MUTATIONS</h2>
+                    <p class="mutations-info">Permanent bonuses from previous world-endings</p>
+                    <div class="mutations-list" id="mutationsList"></div>
+                </div>
+
+                <!-- Achievements Tab -->
+                <div class="tab-content" id="achievements">
+                    <h2>🏆 ACHIEVEMENTS</h2>
+                    <p class="achievements-info">Unlock achievements for bonus rewards</p>
+                    <div class="achievements-list" id="achievementsList"></div>
+                </div>
+
+                <!-- Community Tab -->
+                <div class="tab-content" id="community">
+                    <h2>🌐 COMMUNITY FEATURES</h2>
+                    <p class="community-info">Compete, share, and compare your apocalyptic achievements!</p>
+                    
+                    <div class="community-tabs">
+                        <button class="community-tab-btn active" data-panel="stats">📊 Statistics</button>
+                        <button class="community-tab-btn" data-panel="leaderboards">🏆 Leaderboards</button>
+                        <button class="community-tab-btn" data-panel="weekly">🗓️ Weekly Challenge</button>
+                        <button class="community-tab-btn" data-panel="ghost">👻 Ghost Run</button>
+                        <button class="community-tab-btn" data-panel="share">📤 Share</button>
+                    </div>
+                    
+                    <div class="community-panels">
+                        <div class="community-panel active" id="stats-panel">
+                            <div id="statsContent"></div>
+                        </div>
+                        
+                        <div class="community-panel" id="leaderboards-panel">
+                            <div id="leaderboardContent"></div>
+                        </div>
+                        
+                        <div class="community-panel" id="weekly-panel">
+                            <div id="weeklyContent"></div>
+                        </div>
+                        
+                        <div class="community-panel" id="ghost-panel">
+                            <div id="ghostContent"></div>
+                        </div>
+                        
+                        <div class="community-panel" id="share-panel">
+                            <div class="share-section">
+                                <h3>📤 Share Your Stats</h3>
+                                <p>Show off your apocalyptic achievements!</p>
+                                <div class="share-buttons">
+                                    <button class="share-btn" id="copyShareBtn">
+                                        📋 Copy Share Text
+                                    </button>
+                                    <button class="share-btn" id="downloadImageBtn">
+                                        📸 Download Share Image
+                                    </button>
+                                </div>
+                                <div class="share-preview" id="sharePreview">
+                                    <h4>Preview:</h4>
+                                    <pre id="sharePreviewText"></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Event Log & Stats -->
+            <div class="right-panel">
+                <div class="project-section" id="projectContainer" style="display: none;">
+                    <h3>ACTIVE PROJECT</h3>
+                    <div class="project-card">
+                        <div class="project-name" id="projectName">Project Name</div>
+                        <div class="project-desc" id="projectDesc">Project description</div>
+                        <div class="project-progress-container">
+                            <div class="project-progress-bar" id="projectProgressBar"></div>
+                            <span class="project-progress-text" id="projectProgressText">0%</span>
+                        </div>
+                        <div class="project-hint">💡 Shift+Click to accelerate construction!</div>
+                    </div>
+                </div>
+
+                <div class="focus-section" id="focusContainer">
+                    <h3>DEPARTMENT FOCUS</h3>
+                    <p class="focus-info">Focus grants 3x production to one department, 0.5x to others</p>
+                    <div class="focus-status" id="focusStatus">No focus active</div>
+                    <div class="focus-cooldown" id="focusCooldown" style="display: none;">⏱️ Cooldown: 60s</div>
+                </div>
+
+                <div class="challenge-section" id="challengeContainer" style="display: none;">
+                    <h3>ACTIVE CHALLENGE</h3>
+                    <div class="challenge-card">
+                        <div class="challenge-name" id="challengeName">Challenge Name</div>
+                        <div class="challenge-desc" id="challengeDesc">Challenge description</div>
+                        <div class="challenge-progress-container">
+                            <div class="challenge-progress-bar" id="challengeProgressBar"></div>
+                            <span class="challenge-progress-text" id="challengeProgressText">0 / 100</span>
+                        </div>
+                        <div class="challenge-timer" id="challengeTimer">⏱️ 60s</div>
+                    </div>
+                </div>
+
+                <div class="scenario-section">
+                    <h3>CURRENT SCENARIO</h3>
+                    <div class="scenario-card" id="scenarioCard">
+                        <div class="scenario-name" id="scenarioName">Standard Apocalypse</div>
+                        <div class="scenario-desc" id="scenarioDesc">No special modifiers this run</div>
+                        <div class="scenario-effects" id="scenarioEffects"></div>
+                    </div>
+                </div>
+
+                <div class="synergy-section">
+                    <h3>ACTIVE SYNERGIES</h3>
+                    <div class="synergies-list" id="synergiesList">
+                        <div class="synergy-empty">No active synergies. Specialize 3+ departments with the same path!</div>
+                    </div>
+                </div>
+
+                <div class="stats-section">
+                    <h3>STATISTICS</h3>
+                    <div class="stat-item">
+                        <span>Total Apocalypses:</span>
+                        <span id="totalApocalypses">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>This Run:</span>
+                        <span id="runTime">0s</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Best Run:</span>
+                        <span id="bestRun">N/A</span>
+                    </div>
+                </div>
+
+                <!-- AI Assistant Section -->
+                <div class="assistant-section" id="assistant-container">
+                    <h3>AI ASSISTANT</h3>
+                    <div class="assistant-info">
+                        <div class="personality-selector">
+                            <label>Personality:</label>
+                            <select id="personality-select" onchange="setAssistantPersonality(this.value)">
+                                <option value="helpful">Helpful</option>
+                                <option value="neutral">Neutral</option>
+                                <option value="sarcastic" selected>Sarcastic</option>
+                                <option value="sadistic">Sadistic</option>
+                            </select>
+                        </div>
+                        <div class="voice-selector" style="margin-top: 8px;">
+                            <label>Voice:</label>
+                            <select id="voice-select" onchange="setAssistantVoiceType(this.value)">
+                                <option value="british" selected>British</option>
+                                <option value="robot">Robot</option>
+                                <option value="surfer">Surfer</option>
+                                <option value="villain">Villain</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Speech bubbles appear here -->
+                </div>
+
+                <div class="event-log-section">
+                    <h3>EVENT LOG</h3>
+                    <div class="event-log" id="eventLog">
+                        <div class="event-item">Welcome to Apocalypse Corp! Click to begin.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <button class="settings-button" id="saveButton">Save Game</button>
+            <button class="settings-button" id="loadButton">Load Game</button>
+            <button class="settings-button" id="exportButton">Export Save</button>
+            <button class="settings-button" id="importButton">Import Save</button>
+            <button class="settings-button" id="soundToggle">Sound ON</button>
+            <button class="settings-button" id="pauseButton">Pause</button>
+            <button class="settings-button" id="perfToggle">Perf HUD: OFF</button>
+            <button class="settings-button" id="themeToggle">Theme: Soft</button>
+            <button class="settings-button" id="toggle-assistant-btn" onclick="toggleAssistant()">Assistant: ON</button>
+            <button class="settings-button" id="toggle-assistant-voice-btn" onclick="toggleAssistantVoice()">Voice: OFF</button>
+            <button class="settings-button danger" id="resetButton">⚠ Hard Reset</button>
+        </footer>
+    </div>
+
+    <!-- Lightweight Performance HUD -->
+    <div id="perfHud" class="perf-hud" style="display: none;">
+        <span id="perfFps">FPS: --</span>
+        <span class="sep">|</span>
+        <span id="perfCps">Chaos/s: --</span>
+        <span class="sep">|</span>
+        <span id="perfCache">Cache: --</span>
+    </div>
+
+    <!-- Apocalypse Animation Overlay -->
+    <div class="apocalypse-overlay" id="apocalypseOverlay">
+        <div class="apocalypse-animation" id="apocalypseAnimation">
+            <div class="flames"></div>
+            <div class="apocalypse-content">
+                <h1 class="apocalypse-title">🔥 APOCALYPSE TRIGGERED 🔥</h1>
+                <div class="apocalypse-stats" id="apocalypseStats"></div>
+                <div class="apocalypse-footer">
+                    <p>Preparing for next fiscal quarter...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
