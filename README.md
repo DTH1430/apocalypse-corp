@@ -1,14 +1,12 @@
-# 🏢 Apocalypse Corp
+# Apocalypse Corp
 
 **End Times Management Simulator** - An incremental game where you run a corporation dedicated to monetizing the downfall of humanity.
 
-![Game Screenshot](https://via.placeholder.com/800x400/1a1a2e/ff6b6b?text=Apocalypse+Corp)
-
-## 🎮 Play Now
+## Play Now
 
 Simply open `index.html` in your web browser to start playing!
 
-## 📖 About
+## About
 
 Apocalypse Corp is a dark comedy incremental/idle game where you:
 - **Click** to generate Chaos Points
@@ -18,55 +16,50 @@ Apocalypse Corp is a dark comedy incremental/idle game where you:
 - **Trade stocks** in the Doom Stock Market for bonus income
 - **Navigate random scenarios** that change the rules each run
 
-## 🎯 Features
+## Features
 
 - **8 Unique Departments** - From lowly Interns to Temporal Paradox Bureaus
 - **Multiple Prestige Layers** - Apocalypse Tokens unlock powerful mutations
 - **Stock Market Mini-Game** - Invest in corporations profiting from doom
 - **Random Scenarios** - Zombie Plagues, Alien Invasions, Climate Collapse, and more
+- **AI Assistant** - In-game companion with customizable personality settings
 - **Dark Corporate Theme** - Complete with satirical HR memos and office aesthetics
 - **Auto-Save** - Your progress is automatically saved every 30 seconds
 
-## 🚀 Getting Started
+## Tech Stack
 
-1. Click the **ADVANCE DOOMSDAY** button to generate Chaos Points
-2. Hire your first **Intern of Disaster** for 10 Chaos Points
-3. Continue hiring departments to automate chaos generation
-4. Advance the doomsday clock to midnight to trigger your first apocalypse
-5. Earn Apocalypse Tokens to unlock permanent mutations
+| Layer | Technology |
+|-------|------------|
+| Core | Pure HTML5, CSS3, Vanilla JavaScript |
+| Storage | LocalStorage (auto-save every 30 seconds) |
+| Audio | Web Audio API (procedural sound effects) |
+| Dependencies | None - completely self-contained |
 
-## 🛠️ Tech Stack
-
-- Pure HTML5, CSS3, and Vanilla JavaScript
-- No dependencies or build tools required
-- LocalStorage for save/load functionality
-- Responsive design
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 apocalypse-corp/
-├── index.html          # Main game HTML
-├── style.css           # Game styling (themes: soft, classic, light)
-├── game.js             # Game logic (standalone, ~7100 lines)
+├── index.html          # Main HTML - game UI structure
+├── style.css           # ~2,500 lines of styling (themes, animations)
+├── game.js             # ~7,100 lines - monolithic game logic (standalone)
 ├── README.md           # This file
-└── js/                 # ES Modules (optional)
-    ├── main.js         # Module entry point & exports
-    ├── state.js        # Game state object
-    ├── constants.js    # Game data definitions
-    └── utils.js        # Utility functions
+└── js/                 # ES Modules version (optional modular structure)
+    ├── main.js         # Entry point - re-exports all modules
+    ├── state.js        # Central game state object (~180 lines)
+    ├── constants.js    # Game data definitions (~1,700 lines)
+    └── utils.js        # Utility functions (~170 lines)
 ```
 
-### ES Module Structure
+### Dual Architecture Support
 
-The codebase supports both traditional script loading and ES modules:
+The codebase supports two loading methods:
 
-**Traditional (default):** `game.js` is a self-contained file loaded directly via `<script>` tag.
+**Traditional Script Loading (default):** `game.js` is a self-contained ~7,100 line file loaded directly via `<script>` tag.
 
-**ES Modules (optional):** The `js/` folder contains modular components:
-- `state.js` - Central `gameState` object
-- `constants.js` - Game data (`DEPARTMENTS`, `UPGRADES`, `ACHIEVEMENTS`, etc.)
-- `utils.js` - Helper functions (`formatNumber`, `escapeHtml`, etc.)
+**ES Modules (optional):** The `js/` folder provides a modular structure:
+- `state.js` - Central `gameState` object with all game variables
+- `constants.js` - Static data definitions (departments, upgrades, mutations, etc.)
+- `utils.js` - Helper functions (`formatNumber`, `escapeHtml`, `playSound`, etc.)
 - `main.js` - Entry point that re-exports all modules
 
 ```javascript
@@ -74,7 +67,29 @@ The codebase supports both traditional script loading and ES modules:
 import { gameState, DEPARTMENTS, formatNumber } from './js/main.js';
 ```
 
-## 🎨 Game Mechanics
+## Core Game Systems
+
+| System | Description |
+|--------|-------------|
+| Departments | 8 purchasable units that generate Chaos Points passively |
+| Upgrades | Power-ups that boost clicking and production |
+| Mutations | Permanent upgrades earned through prestige (apocalypse) |
+| Stock Market | Mini-game for trading doom-themed stocks |
+| Scenarios | Random modifiers that change gameplay each run |
+| Challenges | Timed objectives for bonus rewards |
+| AI Assistant | In-game companion with personality settings |
+| Achievements | Unlockable rewards based on milestones |
+
+## State Management
+
+The `gameState` object is the single source of truth, containing:
+- **Resources**: `chaosPoints`, `doomEnergy`, `apocalypseTokens`
+- **Owned items**: departments, upgrades, mutations, stocks
+- **Statistics**: lifetime stats, session stats, run-specific data
+- **Active systems**: challenges, crises, events, projects
+- **User preferences**: theme, sound settings, AI assistant configuration
+
+## Game Mechanics
 
 ### Resources
 - **Chaos Points**: Main currency, earned by clicking and from departments
@@ -94,7 +109,15 @@ import { gameState, DEPARTMENTS, formatNumber } from './js/main.js';
 - **Temporal Loop**: +50% Apocalypse Tokens
 - **Cosmic Insight**: Clicking generates chaos based on passive income
 
-## 🎭 Theme
+## Getting Started
+
+1. Click the **ADVANCE DOOMSDAY** button to generate Chaos Points
+2. Hire your first **Intern of Disaster** for 10 Chaos Points
+3. Continue hiring departments to automate chaos generation
+4. Advance the doomsday clock to midnight to trigger your first apocalypse
+5. Earn Apocalypse Tokens to unlock permanent mutations
+
+## Theme
 
 The game combines dark comedy with corporate satire, featuring:
 - Absurd department names and descriptions
@@ -102,7 +125,7 @@ The game combines dark comedy with corporate satire, featuring:
 - Satirical take on corporate culture meeting doomsday scenarios
 - Inspired by games like Cookie Clicker, Universal Paperclips, and NGU Idle
 
-## 🤝 Contributing
+## Contributing
 
 Feel free to fork this project and submit pull requests! Some ideas for contributions:
 - New departments and upgrades
@@ -111,11 +134,11 @@ Feel free to fork this project and submit pull requests! Some ideas for contribu
 - UI/UX improvements
 - Sound effects and music
 
-## 📜 License
+## License
 
 This project is open source and available for anyone to use, modify, and distribute.
 
-## 🎮 Play Tips
+## Play Tips
 
 - Early game focuses on clicking and buying the first few departments
 - Upgrades are crucial - they provide massive multipliers
@@ -125,6 +148,6 @@ This project is open source and available for anyone to use, modify, and distrib
 
 ---
 
-**Made with 💀 for incremental game enthusiasts**
+**Made for incremental game enthusiasts**
 
 Enjoy ending the world, one fiscal quarter at a time!
