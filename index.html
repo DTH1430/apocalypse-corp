@@ -1,27 +1,36 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0d0d0d">
     <title>Apocalypse Corp - End Times Management Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:wght@400;600;700&family=Raleway:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="container">
         <div class="stock-ticker" id="stockTicker">
             <div class="ticker-content" id="tickerContent">
-                📊 DOOM INDEX: <span class="ticker-up">+∞%</span> |
-                🌍 HUMANITY FUTURES: <span class="ticker-down">-99.9%</span> |
-                ☄️ ASTEROID DELIVERY: ON SCHEDULE |
-                🧟 ZOMBIE BONDS: MATURE |
-                ⚠️ COMPLIANCE: WHO CARES?
+                <span aria-hidden="true">📊</span> DOOM INDEX: <span class="ticker-up">+∞%</span> |
+                <span aria-hidden="true">🌍</span> HUMANITY FUTURES: <span class="ticker-down">-99.9%</span> |
+                <span aria-hidden="true">☄️</span> ASTEROID DELIVERY: ON SCHEDULE |
+                <span aria-hidden="true">🧟</span> ZOMBIE BONDS: MATURE |
+                <span aria-hidden="true">⚠️</span> COMPLIANCE: WHO CARES?
             </div>
         </div>
 
         <header>
-            <h1>🏢 APOCALYPSE CORP™</h1>
+            <h1><span aria-hidden="true">🏢</span> APOCALYPSE CORP™</h1>
             <p class="tagline">Monetizing the End Times Since 2025</p>
-            <p class="memo-banner">📋 HR MEMO: "Employees are reminded that causing premature apocalypses before EOQ will affect your bonus."</p>
+            <p class="memo-banner"><span aria-hidden="true">📋</span> HR MEMO: "Employees are reminded that causing
+                premature apocalypses before EOQ will affect your bonus."</p>
         </header>
 
         <div class="main-content">
@@ -35,11 +44,12 @@
                             <div class="clock-fill" id="clockFill"></div>
                         </div>
                     </div>
-                    <button class="doom-button" id="doomButton">
+                    <button class="doom-button" id="doomButton"
+                        aria-label="Advance Doomsday - Click to generate chaos points">
                         ADVANCE DOOMSDAY
                         <span class="doom-value">+<span id="doomPerClick">1</span> Chaos Point per click</span>
                         <span class="keyboard-hint">Press SPACE to click</span>
-                        <span class="combo-indicator" id="comboIndicator"></span>
+                        <span class="combo-indicator" id="comboIndicator" aria-live="polite"></span>
                     </button>
 
                     <div class="apocalypse-progress">
@@ -79,7 +89,8 @@
                 <div class="apocalypse-section" id="apocalypseSection">
                     <h3>🌋 TRIGGER APOCALYPSE</h3>
                     <p class="apocalypse-info">End the world and gain powerful bonuses!</p>
-                    <button class="apocalypse-button" id="apocalypseButton">
+                    <button class="apocalypse-button" id="apocalypseButton"
+                        aria-label="Trigger Apocalypse - End the world and gain tokens">
                         TRIGGER APOCALYPSE
                         <span class="apocalypse-reward">Gain: <span id="apocalypseReward">0</span> tokens</span>
                     </button>
@@ -141,7 +152,7 @@
                 <div class="tab-content" id="community">
                     <h2>🌐 COMMUNITY FEATURES</h2>
                     <p class="community-info">Compete, share, and compare your apocalyptic achievements!</p>
-                    
+
                     <div class="community-tabs">
                         <button class="community-tab-btn active" data-panel="stats">📊 Statistics</button>
                         <button class="community-tab-btn" data-panel="leaderboards">🏆 Leaderboards</button>
@@ -149,34 +160,35 @@
                         <button class="community-tab-btn" data-panel="ghost">👻 Ghost Run</button>
                         <button class="community-tab-btn" data-panel="share">📤 Share</button>
                     </div>
-                    
+
                     <div class="community-panels">
                         <div class="community-panel active" id="stats-panel">
                             <div id="statsContent"></div>
                         </div>
-                        
+
                         <div class="community-panel" id="leaderboards-panel">
                             <div id="leaderboardContent"></div>
                         </div>
-                        
+
                         <div class="community-panel" id="weekly-panel">
                             <div id="weeklyContent"></div>
                         </div>
-                        
+
                         <div class="community-panel" id="ghost-panel">
                             <div id="ghostContent"></div>
                         </div>
-                        
+
                         <div class="community-panel" id="share-panel">
                             <div class="share-section">
                                 <h3>📤 Share Your Stats</h3>
                                 <p>Show off your apocalyptic achievements!</p>
                                 <div class="share-buttons">
-                                    <button class="share-btn" id="copyShareBtn">
-                                        📋 Copy Share Text
+                                    <button class="share-btn" id="copyShareBtn"
+                                        aria-label="Copy share text to clipboard">
+                                        <span aria-hidden="true">📋</span> Copy Share Text
                                     </button>
-                                    <button class="share-btn" id="downloadImageBtn">
-                                        📸 Download Share Image
+                                    <button class="share-btn" id="downloadImageBtn" aria-label="Download share image">
+                                        <span aria-hidden="true">📸</span> Download Share Image
                                     </button>
                                 </div>
                                 <div class="share-preview" id="sharePreview">
@@ -236,7 +248,8 @@
                 <div class="synergy-section">
                     <h3>ACTIVE SYNERGIES</h3>
                     <div class="synergies-list" id="synergiesList">
-                        <div class="synergy-empty">No active synergies. Specialize 3+ departments with the same path!</div>
+                        <div class="synergy-empty">No active synergies. Specialize 3+ departments with the same path!
+                        </div>
                     </div>
                 </div>
 
@@ -261,8 +274,8 @@
                     <h3>AI ASSISTANT</h3>
                     <div class="assistant-info">
                         <div class="personality-selector">
-                            <label>Personality:</label>
-                            <select id="personality-select" onchange="setAssistantPersonality(this.value)">
+                            <label for="personality-select">Personality:</label>
+                            <select id="personality-select" name="personality">
                                 <option value="helpful">Helpful</option>
                                 <option value="neutral">Neutral</option>
                                 <option value="sarcastic" selected>Sarcastic</option>
@@ -270,8 +283,8 @@
                             </select>
                         </div>
                         <div class="voice-selector" style="margin-top: 8px;">
-                            <label>Voice:</label>
-                            <select id="voice-select" onchange="setAssistantVoiceType(this.value)">
+                            <label for="voice-select">Voice:</label>
+                            <select id="voice-select" name="voice">
                                 <option value="british" selected>British</option>
                                 <option value="robot">Robot</option>
                                 <option value="surfer">Surfer</option>
@@ -300,8 +313,10 @@
             <button class="settings-button" id="pauseButton">Pause</button>
             <button class="settings-button" id="perfToggle">Perf HUD: OFF</button>
             <button class="settings-button" id="themeToggle">Theme: Soft</button>
-            <button class="settings-button" id="toggle-assistant-btn" onclick="toggleAssistant()">Assistant: ON</button>
-            <button class="settings-button" id="toggle-assistant-voice-btn" onclick="toggleAssistantVoice()">Voice: OFF</button>
+            <button class="settings-button" id="toggle-assistant-btn" aria-label="Toggle AI Assistant">Assistant:
+                ON</button>
+            <button class="settings-button" id="toggle-assistant-voice-btn" aria-label="Toggle Assistant Voice">Voice:
+                OFF</button>
             <button class="settings-button danger" id="resetButton">⚠ Hard Reset</button>
         </footer>
     </div>
@@ -331,4 +346,5 @@
 
     <script src="game.js"></script>
 </body>
+
 </html>

@@ -16,33 +16,33 @@ export const performanceMonitor = {
     lastFpsTime: 0,
     fps: 0,
     frameTimes: [],
-    
+
     update() {
         if (!this.enabled) return;
-        
+
         this.frameCount++;
         const now = performance.now();
-        
+
         if (now - this.lastFpsTime >= 1000) {
             this.fps = this.frameCount;
             this.frameCount = 0;
             this.lastFpsTime = now;
-            
+
             if (this.fps < 30) {
                 console.warn(`Low FPS detected: ${this.fps}`);
             }
         }
     },
-    
+
     enable() {
         this.enabled = true;
         this.lastFpsTime = performance.now();
     },
-    
+
     disable() {
         this.enabled = false;
     },
-    
+
     getStats() {
         return {
             fps: this.fps,
@@ -76,7 +76,7 @@ export function formatNumber(num) {
     if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
     if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
     if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
-    return Math.floor(num).toLocaleString('en-US');
+    return Math.floor(num).toLocaleString();
 }
 
 /** Get color class based on number magnitude */
@@ -114,7 +114,7 @@ export function formatTime(ms) {
 export function addLog(message) {
     const eventLog = document.getElementById('eventLog');
     if (!eventLog) return;
-    
+
     const event = document.createElement('div');
     event.className = 'event-item';
     event.textContent = message;

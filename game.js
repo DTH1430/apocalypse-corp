@@ -2626,19 +2626,19 @@ function playSound(type) {
 function safeMergeGameState(loadedState) {
     // List of dangerous keys that could be used for prototype pollution
     const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
-    
+
     // Helper to check if a key is safe
     const isSafeKey = (key) => !dangerousKeys.includes(key);
-    
+
     // Safely merge loaded state into game state
     Object.keys(loadedState).forEach(key => {
         if (!isSafeKey(key)) {
             console.warn(`Blocked potentially dangerous key in save data: ${key}`);
             return;
         }
-        
+
         const value = loadedState[key];
-        
+
         // Handle nested objects (departments, stocks, mutations, achievements)
         if (key === 'departments' || key === 'stocks' || key === 'mutations' || key === 'achievements') {
             if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
@@ -3090,34 +3090,34 @@ const performanceMonitor = {
     lastFpsTime: 0,
     fps: 0,
     frameTimes: [],
-    
+
     update() {
         if (!this.enabled) return;
-        
+
         this.frameCount++;
         const now = performance.now();
-        
+
         if (now - this.lastFpsTime >= 1000) {
             this.fps = this.frameCount;
             this.frameCount = 0;
             this.lastFpsTime = now;
-            
+
             // Log performance issues
             if (this.fps < 30) {
                 console.warn(`Low FPS detected: ${this.fps}`);
             }
         }
     },
-    
+
     enable() {
         this.enabled = true;
         this.lastFpsTime = performance.now();
     },
-    
+
     disable() {
         this.enabled = false;
     },
-    
+
     getStats() {
         // Determine cache status for better readability
         let cacheStatus = 'none';
@@ -3125,7 +3125,7 @@ const performanceMonitor = {
             const cacheAge = Date.now() - calculationCache.lastChaosCalcTime;
             cacheStatus = cacheAge < 1000 ? 'cached' : 'recalculated';
         }
-        
+
         return {
             fps: this.fps,
             cacheHitRate: cacheStatus
@@ -3287,7 +3287,7 @@ function getDepartmentProduction(deptId) {
 // Optimized: Use for...in instead of forEach for better performance
 function calculateChaosPerSecond() {
     let total = 0;
-    
+
     // Sum department production
     for (const deptId in DEPARTMENTS) {
         total += getDepartmentProduction(deptId);
@@ -3366,7 +3366,7 @@ function buyUpgrade(upgradeId) {
     const upgrade = UPGRADES[upgradeId];
     if (gameState.chaosPoints >= upgrade.cost && !gameState.upgrades[upgradeId]) {
         gameState.chaosPoints -= upgrade.cost;
-        
+
         // Clear calculation cache since upgrades affect production
         clearCalculationCache();
         gameState.upgrades[upgradeId] = true;
@@ -3895,16 +3895,16 @@ function executeApocalypse(reward, runTime, typeId = null) {
     // Track community stats for apocalypse
     gameState.lifetimeStats.totalApocalypsesAllTime++;
     gameState.sessionStats.sessionApocalypses++;
-    
+
     // Update fastest apocalypse time
     if (!gameState.lifetimeStats.fastestApocalypseTime || runTime < gameState.lifetimeStats.fastestApocalypseTime) {
         gameState.lifetimeStats.fastestApocalypseTime = runTime;
         updateGlobalLeaderboard('fastestApocalypse', runTime);
     }
-    
+
     // Update total apocalypses leaderboard
     updateGlobalLeaderboard('totalApocalypses', gameState.lifetimeStats.totalApocalypsesAllTime);
-    
+
     // Finalize ghost run
     finalizeGhostRun();
 
@@ -4027,7 +4027,7 @@ function screenShake(intensity = 1) {
     const body = document.body;
     const shakePx = Math.min(0.5 + intensity * 0.3, 1.5); // 0.8-1.5px based on intensity (much gentler)
 
-    body.style.transform = `translate(${Math.random() * shakePx - shakePx/2}px, ${Math.random() * shakePx - shakePx/2}px)`;
+    body.style.transform = `translate(${Math.random() * shakePx - shakePx / 2}px, ${Math.random() * shakePx - shakePx / 2}px)`;
 
     setTimeout(() => {
         body.style.transform = 'translate(0, 0)';
@@ -4798,7 +4798,7 @@ function showChallengeNotification(challenge) {
                     <strong>Rewards:</strong>
                     <div>💰 ${formatNumber(challenge.reward.chaos)} Chaos Points</div>
                     ${challenge.reward.multiplier ?
-                        `<div>⚡ ${challenge.reward.multiplier.value}x production for ${challenge.reward.multiplier.duration}s</div>` : ''}
+            `<div>⚡ ${challenge.reward.multiplier.value}x production for ${challenge.reward.multiplier.duration}s</div>` : ''}
                 </div>
             </div>
             <div class="challenge-buttons">
@@ -5107,13 +5107,13 @@ function gameTick(timestamp = Date.now()) {
     // Calculate delta time
     const deltaMs = timestamp - lastFrameTime;
     lastFrameTime = timestamp;
-    
+
     // Accumulate time for fixed timestep
     accumulatedTime += deltaMs;
-    
+
     // Get current time for all logic
     const now = Date.now();
-    
+
     // If paused, skip simulation but keep UI responsive
     if (gameState.paused) {
         performanceMonitor.update();
@@ -5153,30 +5153,30 @@ function gameTick(timestamp = Date.now()) {
         } else {
             gameState.chaosPerSecond = calculationCache.chaosPerSecond;
         }
-        
+
         const passiveChaos = gameState.chaosPerSecond * delta;
         gameState.chaosPoints += passiveChaos;
         gameState.totalChaosEarned += passiveChaos;
         gameState.lifetimeStats.totalChaosAllTime += passiveChaos;
         gameState.sessionStats.sessionChaos += passiveChaos;
 
-    // Track highest chaos/sec for leaderboards
-    if (gameState.chaosPerSecond > gameState.lifetimeStats.highestChaosPerSec) {
-        gameState.lifetimeStats.highestChaosPerSec = gameState.chaosPerSecond;
-        updateGlobalLeaderboard('highestChaosPerSec', gameState.chaosPerSecond);
-    }
+        // Track highest chaos/sec for leaderboards
+        if (gameState.chaosPerSecond > gameState.lifetimeStats.highestChaosPerSec) {
+            gameState.lifetimeStats.highestChaosPerSec = gameState.chaosPerSecond;
+            updateGlobalLeaderboard('highestChaosPerSec', gameState.chaosPerSecond);
+        }
 
-    // Record ghost run snapshots
-    recordGhostSnapshot();
+        // Record ghost run snapshots
+        recordGhostSnapshot();
 
-    // Update weekly challenge progress
-    updateWeeklyChallengeProgress();
+        // Update weekly challenge progress
+        updateWeeklyChallengeProgress();
 
         // Periodically check achievements (every second)
         if (Math.floor(now / 1000) !== Math.floor((now - TICK_RATE) / 1000)) {
             checkAllAchievements();
         }
-        
+
         accumulatedTime -= TICK_RATE;
     }
 
@@ -5205,72 +5205,72 @@ function gameTick(timestamp = Date.now()) {
         }
     }
 
-        // Update active challenge progress
-        if (gameState.activeChallenge) {
-            updateChallengeProgress();
-            updateChallengeDisplay();
+    // Update active challenge progress
+    if (gameState.activeChallenge) {
+        updateChallengeProgress();
+        updateChallengeDisplay();
+    }
+
+    // Active Gameplay Mechanics
+    // Check for player activity and trigger random events
+    const timeSinceActivity = now - gameState.lastActivityTime;
+    const isActive = timeSinceActivity < 5000; // Consider active if interaction within 5 seconds
+
+    if (isActive && !gameState.activeEvent && !gameState.activeCrisis) {
+        if (gameState.nextEventTime === 0) {
+            // Initialize first event time (2-5 minutes)
+            gameState.nextEventTime = now + (120000 + Math.random() * 180000);
+        } else if (now >= gameState.nextEventTime) {
+            triggerRandomEvent();
+        }
+    }
+
+    // Update Doom Project idle progress
+    if (gameState.activeProject) {
+        updateProjectIdleProgress();
+    }
+
+    // Trigger crisis when departments reach milestones
+    if (!gameState.activeCrisis && now - gameState.lastCrisisTime > 600000) { // At least 10 min between crises
+        const totalDepartments = Object.values(gameState.departments).reduce((sum, dept) => sum + dept.count, 0);
+        if (totalDepartments >= 50 && Math.random() < 0.01) { // 1% chance per tick when 50+ departments
+            triggerCrisis();
+        }
+    }
+
+    // Update crisis timer
+    if (gameState.activeCrisis) {
+        const elapsed = (now - gameState.crisisStartTime) / 1000;
+        if (elapsed >= 30) {
+            failCrisis();
+        }
+    }
+
+    // AI Assistant checks
+    if (gameState.assistant && gameState.assistant.enabled) {
+        checkAssistantMilestones();
+
+        // Periodic hints and comments (every 30 seconds)
+        if (Math.floor(now / 30000) !== Math.floor((now - TICK_RATE) / 30000)) {
+            provideStrategicHint();
+            detectPlayerPatterns();
         }
 
-        // Active Gameplay Mechanics
-        // Check for player activity and trigger random events
-        const timeSinceActivity = now - gameState.lastActivityTime;
-        const isActive = timeSinceActivity < 5000; // Consider active if interaction within 5 seconds
-
-        if (isActive && !gameState.activeEvent && !gameState.activeCrisis) {
-            if (gameState.nextEventTime === 0) {
-                // Initialize first event time (2-5 minutes)
-                gameState.nextEventTime = now + (120000 + Math.random() * 180000);
-            } else if (now >= gameState.nextEventTime) {
-                triggerRandomEvent();
-            }
+        // Random comments (every 60 seconds)
+        if (Math.floor(now / 60000) !== Math.floor((now - TICK_RATE) / 60000)) {
+            randomAssistantComment();
         }
+    }
 
-        // Update Doom Project idle progress
-        if (gameState.activeProject) {
-            updateProjectIdleProgress();
-        }
-
-        // Trigger crisis when departments reach milestones
-        if (!gameState.activeCrisis && now - gameState.lastCrisisTime > 600000) { // At least 10 min between crises
-            const totalDepartments = Object.values(gameState.departments).reduce((sum, dept) => sum + dept.count, 0);
-            if (totalDepartments >= 50 && Math.random() < 0.01) { // 1% chance per tick when 50+ departments
-                triggerCrisis();
-            }
-        }
-
-        // Update crisis timer
-        if (gameState.activeCrisis) {
-            const elapsed = (now - gameState.crisisStartTime) / 1000;
-            if (elapsed >= 30) {
-                failCrisis();
-            }
-        }
-
-        // AI Assistant checks
-        if (gameState.assistant && gameState.assistant.enabled) {
-            checkAssistantMilestones();
-
-            // Periodic hints and comments (every 30 seconds)
-            if (Math.floor(now / 30000) !== Math.floor((now - TICK_RATE) / 30000)) {
-                provideStrategicHint();
-                detectPlayerPatterns();
-            }
-
-            // Random comments (every 60 seconds)
-            if (Math.floor(now / 60000) !== Math.floor((now - TICK_RATE) / 60000)) {
-                randomAssistantComment();
-            }
-        }
-        
-        // Update stocks periodically
-        updateStocksIfNeeded();
+    // Update stocks periodically
+    updateStocksIfNeeded();
 
     // Update performance monitor
     performanceMonitor.update();
-    
+
     // Update display (throttled to avoid excessive repaints)
     updateDisplay();
-    
+
     // Schedule next frame
     requestAnimationFrame(gameTick);
 }
@@ -5384,10 +5384,10 @@ function initDOMCache() {
 function applyTheme() {
     const body = document.body;
     if (!body) return;
-    
+
     // Remove all theme classes
     body.classList.remove('classic-theme', 'light-theme');
-    
+
     // Add appropriate theme class
     if (gameState.theme === 'classic') {
         body.classList.add('classic-theme');
@@ -5395,7 +5395,7 @@ function applyTheme() {
         body.classList.add('light-theme');
     }
     // 'soft' theme has no class (default styles)
-    
+
     const themeBtn = document.getElementById('themeToggle');
     if (themeBtn) {
         const themeName = gameState.theme.charAt(0).toUpperCase() + gameState.theme.slice(1);
@@ -5425,7 +5425,7 @@ function clearCalculationCache() {
 function updateDisplay() {
     // Use cached DOM elements for better performance
     if (!domCache.doomEnergy) initDOMCache();
-    
+
     // Resources with color coding
     domCache.doomEnergy.textContent = formatNumber(gameState.doomEnergy);
     domCache.doomEnergy.className = 'resource-value ' + getNumberColor(gameState.doomEnergy);
@@ -5499,7 +5499,7 @@ function updateDisplay() {
             calculationCache.apocalypseReward = apocalypseReward;
             calculationCache.lastRewardCalcTime = now;
         }
-        
+
         domCache.apocalypseButton.textContent = 'TRIGGER APOCALYPSE';
         domCache.apocalypseButton.className = '';
         domCache.apocalypseReward.textContent = apocalypseReward;
@@ -5654,7 +5654,7 @@ function updateMutationButtons() {
 /** Render department list with buy buttons */
 function renderDepartments() {
     const container = document.getElementById('departmentsList');
-    
+
     // Use document fragment for better performance
     const fragment = document.createDocumentFragment();
 
@@ -5757,7 +5757,7 @@ function renderDepartments() {
 
         fragment.appendChild(div);
     });
-    
+
     // Clear and append all at once for better performance
     container.innerHTML = '';
     container.appendChild(fragment);
@@ -5868,7 +5868,7 @@ function renderStocks() {
         div.querySelector('.stock-sell-button').onclick = () => sellStock(stockData.id);
         fragment.appendChild(div);
     });
-    
+
     container.innerHTML = '';
     container.appendChild(fragment);
 }
@@ -5906,7 +5906,7 @@ function renderMutations() {
         }
         fragment.appendChild(div);
     });
-    
+
     container.innerHTML = '';
     container.appendChild(fragment);
 }
@@ -6058,18 +6058,18 @@ function getGlobalLeaderboard() {
 
 function updateGlobalLeaderboard(category, value, playerData = {}) {
     const leaderboard = getGlobalLeaderboard();
-    
+
     if (!leaderboard[category]) {
         leaderboard[category] = [];
     }
-    
+
     const entry = {
         value: value,
         timestamp: Date.now(),
         playerName: playerData.name || 'Anonymous',
         apocalypses: gameState.totalApocalypses
     };
-    
+
     leaderboard[category].push(entry);
     leaderboard[category].sort((a, b) => {
         if (category === 'fastestApocalypse') {
@@ -6077,10 +6077,10 @@ function updateGlobalLeaderboard(category, value, playerData = {}) {
         }
         return b.value - a.value; // Higher is better
     });
-    
+
     // Keep only top 100
     leaderboard[category] = leaderboard[category].slice(0, 100);
-    
+
     localStorage.setItem('apocalypseCorpLeaderboard', JSON.stringify(leaderboard));
     return leaderboard;
 }
@@ -6088,9 +6088,9 @@ function updateGlobalLeaderboard(category, value, playerData = {}) {
 function calculatePercentileRank(category, value) {
     const leaderboard = getGlobalLeaderboard();
     const entries = leaderboard[category] || [];
-    
+
     if (entries.length === 0) return 50; // Default to 50th percentile
-    
+
     let betterCount = 0;
     entries.forEach(entry => {
         if (category === 'fastestApocalypse') {
@@ -6099,7 +6099,7 @@ function calculatePercentileRank(category, value) {
             if (entry.value > value) betterCount++;
         }
     });
-    
+
     const percentile = 100 - Math.round((betterCount / entries.length) * 100);
     return Math.max(1, Math.min(100, percentile));
 }
@@ -6108,11 +6108,11 @@ function calculatePercentileRank(category, value) {
 function generateShareText(achievement) {
     const emoji = achievement ? achievement.icon : '💀';
     const totalApocalypses = gameState.totalApocalypses || gameState.lifetimeStats.totalApocalypsesAllTime;
-    
+
     return `I triggered ${totalApocalypses} apocalypses in Apocalypse Corp! ${emoji}\n` +
-           `💀 Total Chaos: ${formatNumber(gameState.lifetimeStats.totalChaosAllTime)}\n` +
-           `⚡ Highest Chaos/sec: ${formatNumber(gameState.lifetimeStats.highestChaosPerSec)}\n` +
-           `🔥 Longest Combo: ${gameState.lifetimeStats.longestCombo}x`;
+        `💀 Total Chaos: ${formatNumber(gameState.lifetimeStats.totalChaosAllTime)}\n` +
+        `⚡ Highest Chaos/sec: ${formatNumber(gameState.lifetimeStats.highestChaosPerSec)}\n` +
+        `🔥 Longest Combo: ${gameState.lifetimeStats.longestCombo}x`;
 }
 
 function generateShareImage() {
@@ -6120,49 +6120,49 @@ function generateShareImage() {
     canvas.width = 800;
     canvas.height = 400;
     const ctx = canvas.getContext('2d');
-    
+
     // Background gradient
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
     gradient.addColorStop(0, '#1a1a2e');
     gradient.addColorStop(1, '#16213e');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 800, 400);
-    
+
     // Title
     ctx.fillStyle = '#ff6b6b';
     ctx.font = 'bold 48px "Courier New", monospace';
     ctx.textAlign = 'center';
     ctx.fillText('🏢 APOCALYPSE CORP™', 400, 60);
-    
+
     // Stats box
     ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
     ctx.fillRect(50, 100, 700, 250);
     ctx.strokeStyle = '#4a4a6a';
     ctx.lineWidth = 3;
     ctx.strokeRect(50, 100, 700, 250);
-    
+
     // Stats
     ctx.fillStyle = '#4fc3f7';
     ctx.font = 'bold 32px "Courier New", monospace';
     ctx.textAlign = 'left';
-    
+
     const stats = [
         `💀 Total Apocalypses: ${gameState.lifetimeStats.totalApocalypsesAllTime}`,
         `💰 Total Chaos: ${formatNumber(gameState.lifetimeStats.totalChaosAllTime)}`,
         `⚡ Highest Chaos/sec: ${formatNumber(gameState.lifetimeStats.highestChaosPerSec)}`,
         `🔥 Longest Combo: ${gameState.lifetimeStats.longestCombo}x`
     ];
-    
+
     stats.forEach((stat, i) => {
         ctx.fillText(stat, 80, 160 + (i * 50));
     });
-    
+
     // Footer
     ctx.fillStyle = '#888';
     ctx.font = '20px "Courier New", monospace';
     ctx.textAlign = 'center';
     ctx.fillText('Monetizing the End Times Since 2025', 400, 380);
-    
+
     return canvas;
 }
 
@@ -6194,7 +6194,7 @@ function downloadShareImage() {
 function recordGhostSnapshot() {
     const now = Date.now();
     const runTime = now - gameState.runStartTime;
-    
+
     // Record snapshot every 5 seconds
     if (now - gameState.ghostRun.lastSnapshotTime >= 5000) {
         gameState.ghostRun.currentRunData.push({
@@ -6209,14 +6209,14 @@ function recordGhostSnapshot() {
 function finalizeGhostRun() {
     const currentRunTime = Date.now() - gameState.runStartTime;
     const currentScore = gameState.chaosPoints;
-    
+
     // Check if this is a new best run
-    if (!gameState.ghostRun.bestRunData || 
+    if (!gameState.ghostRun.bestRunData ||
         currentScore > (gameState.ghostRun.bestRunData[gameState.ghostRun.bestRunData.length - 1]?.chaos || 0)) {
         gameState.ghostRun.bestRunData = [...gameState.ghostRun.currentRunData];
         addLog('👻 New ghost run record set!');
     }
-    
+
     // Reset current run
     gameState.ghostRun.currentRunData = [];
     gameState.ghostRun.lastSnapshotTime = 0;
@@ -6226,14 +6226,14 @@ function getGhostComparison() {
     if (!gameState.ghostRun.bestRunData || gameState.ghostRun.bestRunData.length === 0) {
         return null;
     }
-    
+
     const currentTime = Date.now() - gameState.runStartTime;
     const currentChaos = gameState.chaosPoints;
-    
+
     // Find closest snapshot in best run
     let closestSnapshot = null;
     let minTimeDiff = Infinity;
-    
+
     gameState.ghostRun.bestRunData.forEach(snapshot => {
         const timeDiff = Math.abs(snapshot.time - currentTime);
         if (timeDiff < minTimeDiff) {
@@ -6241,12 +6241,12 @@ function getGhostComparison() {
             closestSnapshot = snapshot;
         }
     });
-    
+
     if (!closestSnapshot) return null;
-    
+
     const diff = currentChaos - closestSnapshot.chaos;
     const percentDiff = (diff / closestSnapshot.chaos) * 100;
-    
+
     return {
         ahead: diff > 0,
         amount: Math.abs(diff),
@@ -6270,7 +6270,7 @@ function generateWeeklyChallengeFromSeed(weekNum) {
         seed = (seed * 9301 + 49297) % 233280;
         return seed / 233280;
     };
-    
+
     const challengeTypes = [
         {
             name: 'Speed Demon',
@@ -6308,10 +6308,10 @@ function generateWeeklyChallengeFromSeed(weekNum) {
             difficulty: 0.7
         }
     ];
-    
+
     const index = Math.floor(seededRandom() * challengeTypes.length);
     const challenge = challengeTypes[index];
-    
+
     return {
         ...challenge,
         weekNumber: weekNum,
@@ -6321,22 +6321,22 @@ function generateWeeklyChallengeFromSeed(weekNum) {
 
 function getWeeklyChallenge() {
     const currentWeek = getWeekNumber();
-    
+
     // Check if we need to generate new challenge
-    if (!gameState.weeklyChallenge.currentWeek || 
+    if (!gameState.weeklyChallenge.currentWeek ||
         gameState.weeklyChallenge.currentWeek !== currentWeek) {
         gameState.weeklyChallenge.currentWeek = currentWeek;
         gameState.weeklyChallenge.completed = false;
         gameState.weeklyChallenge.progress = 0;
     }
-    
+
     return generateWeeklyChallengeFromSeed(currentWeek);
 }
 
 function updateWeeklyChallengeProgress() {
     const challenge = getWeeklyChallenge();
     if (gameState.weeklyChallenge.completed) return;
-    
+
     let progress = 0;
     switch (challenge.type) {
         case 'speed':
@@ -6377,7 +6377,7 @@ function updateWeeklyChallengeProgress() {
             }
             break;
     }
-    
+
     gameState.weeklyChallenge.progress = Math.min(100, progress);
 }
 
@@ -6385,10 +6385,10 @@ function updateWeeklyChallengeProgress() {
 function renderStatsDashboard() {
     const container = document.getElementById('statsContent');
     if (!container) return;
-    
+
     // Calculate session duration
     const sessionDuration = Date.now() - gameState.sessionStats.sessionStartTime;
-    
+
     container.innerHTML = `
         <div class="stats-section-box">
             <h3>📊 Lifetime Statistics</h3>
@@ -6447,7 +6447,7 @@ function renderStatsDashboard() {
             <canvas id="statsGraph" width="600" height="200"></canvas>
         </div>
     `;
-    
+
     // Draw graph
     drawStatsGraph();
 }
@@ -6455,15 +6455,15 @@ function renderStatsDashboard() {
 function drawStatsGraph() {
     const canvas = document.getElementById('statsGraph');
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
-    
+
     // Clear canvas
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     ctx.fillRect(0, 0, width, height);
-    
+
     // Draw grid
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
     ctx.lineWidth = 1;
@@ -6474,31 +6474,31 @@ function drawStatsGraph() {
         ctx.lineTo(width, y);
         ctx.stroke();
     }
-    
+
     // Draw chaos progression if we have ghost data
     if (gameState.ghostRun.currentRunData && gameState.ghostRun.currentRunData.length > 1) {
         const data = gameState.ghostRun.currentRunData;
         const maxChaos = Math.max(...data.map(d => d.chaos), 1);
         const maxTime = data[data.length - 1].time;
-        
+
         // Draw current run
         ctx.strokeStyle = '#4fc3f7';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        
+
         data.forEach((point, i) => {
             const x = (point.time / maxTime) * width;
             const y = height - ((point.chaos / maxChaos) * height);
-            
+
             if (i === 0) {
                 ctx.moveTo(x, y);
             } else {
                 ctx.lineTo(x, y);
             }
         });
-        
+
         ctx.stroke();
-        
+
         // Draw ghost run if exists
         if (gameState.ghostRun.bestRunData && gameState.ghostRun.bestRunData.length > 1) {
             const ghostData = gameState.ghostRun.bestRunData;
@@ -6506,22 +6506,22 @@ function drawStatsGraph() {
             ctx.lineWidth = 2;
             ctx.setLineDash([5, 5]);
             ctx.beginPath();
-            
+
             ghostData.forEach((point, i) => {
                 const x = (point.time / maxTime) * width;
                 const y = height - ((point.chaos / maxChaos) * height);
-                
+
                 if (i === 0) {
                     ctx.moveTo(x, y);
                 } else {
                     ctx.lineTo(x, y);
                 }
             });
-            
+
             ctx.stroke();
             ctx.setLineDash([]);
         }
-        
+
         // Legend
         ctx.fillStyle = '#4fc3f7';
         ctx.font = '12px "Courier New", monospace';
@@ -6540,38 +6540,38 @@ function drawStatsGraph() {
 function renderLeaderboards() {
     const container = document.getElementById('leaderboardContent');
     if (!container) return;
-    
+
     const leaderboard = getGlobalLeaderboard();
-    
+
     const categories = [
         { id: 'fastestApocalypse', name: '⚡ Fastest Apocalypse', format: formatTime, lower: true },
         { id: 'highestChaosPerSec', name: '💰 Highest Chaos/sec', format: (v) => formatNumber(v) + '/s', lower: false },
         { id: 'longestCombo', name: '🔥 Longest Combo', format: (v) => v + 'x', lower: false },
         { id: 'totalApocalypses', name: '💀 Total Apocalypses', format: formatNumber, lower: false }
     ];
-    
+
     let html = '<div class="leaderboard-tabs">';
     categories.forEach((cat, i) => {
         html += `<button class="leaderboard-tab ${i === 0 ? 'active' : ''}" data-category="${cat.id}">${cat.name}</button>`;
     });
     html += '</div>';
-    
+
     categories.forEach((cat, i) => {
         const entries = leaderboard[cat.id] || [];
         const myValue = cat.id === 'fastestApocalypse' ? gameState.lifetimeStats.fastestApocalypseTime :
-                        cat.id === 'highestChaosPerSec' ? gameState.lifetimeStats.highestChaosPerSec :
-                        cat.id === 'longestCombo' ? gameState.lifetimeStats.longestCombo :
-                        gameState.lifetimeStats.totalApocalypsesAllTime;
-        
+            cat.id === 'highestChaosPerSec' ? gameState.lifetimeStats.highestChaosPerSec :
+                cat.id === 'longestCombo' ? gameState.lifetimeStats.longestCombo :
+                    gameState.lifetimeStats.totalApocalypsesAllTime;
+
         const percentile = myValue ? calculatePercentileRank(cat.id, myValue) : 50;
-        
+
         html += `<div class="leaderboard-panel ${i === 0 ? 'active' : ''}" data-category="${cat.id}">`;
         html += `<div class="my-rank-box">
             <div class="rank-label">Your Rank</div>
             <div class="rank-value">Top ${percentile}%</div>
             <div class="rank-detail">${myValue ? cat.format(myValue) : 'No data yet'}</div>
         </div>`;
-        
+
         html += '<div class="leaderboard-list">';
         if (entries.length === 0) {
             html += '<div class="leaderboard-empty">No entries yet. Be the first!</div>';
@@ -6587,9 +6587,9 @@ function renderLeaderboards() {
         }
         html += '</div></div>';
     });
-    
+
     container.innerHTML = html;
-    
+
     // Add tab switching
     document.querySelectorAll('.leaderboard-tab').forEach(tab => {
         tab.addEventListener('click', () => {
@@ -6605,11 +6605,11 @@ function renderLeaderboards() {
 function renderWeeklyChallenge() {
     const container = document.getElementById('weeklyContent');
     if (!container) return;
-    
+
     const challenge = getWeeklyChallenge();
     const completed = gameState.weeklyChallenge.completed;
     const progress = gameState.weeklyChallenge.progress;
-    
+
     container.innerHTML = `
         <div class="weekly-challenge-box ${completed ? 'completed' : ''}">
             <h3>🗓️ Week ${challenge.weekNumber} Challenge</h3>
@@ -6636,19 +6636,19 @@ function renderWeeklyChallenge() {
 function renderGhostRun() {
     const container = document.getElementById('ghostContent');
     if (!container) return;
-    
+
     const comparison = getGhostComparison();
-    
+
     let html = '<div class="ghost-run-box">';
     html += '<h3>👻 Ghost Run Comparison</h3>';
-    
+
     if (!comparison) {
         html += '<div class="ghost-empty">Complete your first apocalypse to create a ghost run!</div>';
     } else {
         const icon = comparison.ahead ? '📈' : '📉';
         const color = comparison.ahead ? '#4caf50' : '#f44336';
         const text = comparison.ahead ? 'ahead of' : 'behind';
-        
+
         html += `<div class="ghost-comparison">
             <div class="ghost-status" style="color: ${color}">
                 ${icon} You're ${text} your best run by ${comparison.percent}%
@@ -6669,7 +6669,7 @@ function renderGhostRun() {
             </div>
         </div>`;
     }
-    
+
     html += '</div>';
     container.innerHTML = html;
 }
@@ -6845,7 +6845,7 @@ function initializeGame() {
         }
         applyTheme();
         // Persist immediately
-        try { localStorage.setItem('apocalypseCorpSave', JSON.stringify(gameState)); } catch (_) {}
+        try { localStorage.setItem('apocalypseCorpSave', JSON.stringify(gameState)); } catch (_) { }
         const themeName = gameState.theme.charAt(0).toUpperCase() + gameState.theme.slice(1);
         addLog(`Theme switched to ${themeName}`);
     });
@@ -6889,7 +6889,7 @@ function initializeGame() {
     const save = localStorage.getItem('apocalypseCorpSave');
     const saveExists = !!save;
     let timeSinceLastSave = 0;
-    
+
     if (save) {
         try {
             const loadedState = JSON.parse(save);
@@ -6961,7 +6961,7 @@ function initializeGame() {
             document.querySelectorAll('.community-panel').forEach(p => p.classList.remove('active'));
             btn.classList.add('active');
             document.getElementById(`${panel}-panel`).classList.add('active');
-            
+
             // Render content when switching panels
             if (panel === 'stats') renderStatsDashboard();
             else if (panel === 'leaderboards') renderLeaderboards();
@@ -6972,17 +6972,17 @@ function initializeGame() {
             }
         });
     });
-    
+
     // Share buttons
     document.getElementById('copyShareBtn')?.addEventListener('click', copyShareTextToClipboard);
     document.getElementById('downloadImageBtn')?.addEventListener('click', downloadShareImage);
-    
+
     // Initial render of community features
     renderStatsDashboard();
     renderLeaderboards();
     renderWeeklyChallenge();
     renderGhostRun();
-    
+
     // Update community panels every 5 seconds
     setInterval(() => {
         const activePanel = document.querySelector('.community-panel.active');
@@ -7008,9 +7008,49 @@ function initializeGame() {
     const voiceSelect = document.getElementById('voice-select');
     if (personalitySelect && gameState.assistant) {
         personalitySelect.value = gameState.assistant.personality;
+        // Add change listener (replaces inline onchange)
+        personalitySelect.addEventListener('change', (e) => {
+            if (typeof setAssistantPersonality === 'function') {
+                setAssistantPersonality(e.target.value);
+            } else {
+                gameState.assistant.personality = e.target.value;
+            }
+        });
     }
     if (voiceSelect && gameState.assistant) {
         voiceSelect.value = gameState.assistant.voiceType;
+        // Add change listener (replaces inline onchange)
+        voiceSelect.addEventListener('change', (e) => {
+            if (typeof setAssistantVoiceType === 'function') {
+                setAssistantVoiceType(e.target.value);
+            } else {
+                gameState.assistant.voiceType = e.target.value;
+            }
+        });
+    }
+
+    // Add event listeners for assistant toggle buttons (replaces inline onclick)
+    const toggleAssistantBtn = document.getElementById('toggle-assistant-btn');
+    const toggleVoiceBtn = document.getElementById('toggle-assistant-voice-btn');
+    if (toggleAssistantBtn) {
+        toggleAssistantBtn.addEventListener('click', () => {
+            if (typeof toggleAssistant === 'function') {
+                toggleAssistant();
+            } else {
+                gameState.assistant.enabled = !gameState.assistant.enabled;
+                toggleAssistantBtn.textContent = gameState.assistant.enabled ? 'Assistant: ON' : 'Assistant: OFF';
+            }
+        });
+    }
+    if (toggleVoiceBtn) {
+        toggleVoiceBtn.addEventListener('click', () => {
+            if (typeof toggleAssistantVoice === 'function') {
+                toggleAssistantVoice();
+            } else {
+                gameState.assistant.voiceEnabled = !gameState.assistant.voiceEnabled;
+                toggleVoiceBtn.textContent = gameState.assistant.voiceEnabled ? 'Voice: ON' : 'Voice: OFF';
+            }
+        });
     }
 
     // Welcome message from assistant (for new games only)
@@ -7028,7 +7068,7 @@ function initializeGame() {
 
     // Initialize DOM cache for better performance
     initDOMCache();
-    
+
     // Start game loop with requestAnimationFrame for better performance
     lastFrameTime = Date.now();
     updateDisplay();
